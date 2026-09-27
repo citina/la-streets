@@ -57,8 +57,8 @@
   /* about these pages, with the sister sites, at the end of the page */
   .about{margin:12px 0 0;font-size:16px;line-height:1.5;color:var(--ink-2)}
   .about b{color:var(--ink);font-weight:600}
-  .sibs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 0}
-  @media (max-width:640px){ .sibs{grid-template-columns:minmax(0,1fr)} }
+  .sibs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0 0}
+  @media (max-width:900px){ .sibs{grid-template-columns:minmax(0,1fr)} }
   .sib{display:block;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;color:inherit;text-decoration:none}
   .sib:hover{border-color:var(--ink-3)}
   .sib-name{font-family:"Barlow Condensed","Barlow",system-ui,sans-serif;font-weight:700;font-size:26px;line-height:1.05;color:var(--ink)}
@@ -248,7 +248,7 @@
 </style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <span class="site here" aria-current="page">USC Ticket Clock</span> · <a class="site" href="streets/">LA Street Rules</a></span><span><span id="mastRange">Updated weekly</span> · <a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <span class="site here" aria-current="page">USC Ticket Clock</span> · <a class="site" href="streets/">LA Street Rules</a> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span><span id="mastRange">Updated weekly</span> · <a href="#about">About</a></span></nav>
   <div class="intro">
   <h1>USC Ticket Clock</h1>
   <p class="lede" id="lede">Pick a street near USC to see its street-sweeping schedule and next sweep dates, when the sweeping officer usually shows up, and how often meter officers walk past. Most LA streets are swept every other week, even where the sign shows only the day. <a href="#calFig" id="exLink">See an example</a></p>
@@ -383,6 +383,7 @@
     <div class="sibs">
       <a class="sib" href="streets/"><div class="sib-name">LA Street Rules</div><div class="sib-txt">Every block in the City of Los Angeles: its sweeping schedule, its meters, and what gets ticketed there.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
+      <a class="sib" href="https://citina.github.io/sf-streets/"><div class="sib-name">SF Streets</div><div class="sib-txt">San Francisco block by block: whether you can park there and for how long, and, on foot, what gets reported to police and how often people walking are hit nearby.</div></a>
     </div>
   </section>
   <div class="note end">
