@@ -451,7 +451,8 @@ print(f"{len(around):,} of {len(set(owner.tolist())):,} blocks without a matched
 m = d[d.meter].sort_values(["b", "date", "mins"])
 cnt = m.groupby("b").size()
 m = m[m.b.isin(cnt[cnt >= METER_MIN].index)]
-mdays = pd.Index(sorted(set(m.date.unique()) - hol))
+# Timestamps, like the holidays: pandas 1.3's unique() gives numpy datetime64 values, which never match one
+mdays = pd.Index(sorted(set(m.date.drop_duplicates()) - hol))
 mdays = mdays[mdays.dayofweek < 6]
 ndow = np.array([max(1, int((mdays.dayofweek == k).sum())) for k in range(6)])
 m = m[m.date.isin(mdays)]

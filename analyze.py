@@ -140,7 +140,8 @@ print(f"sweeping tickets outside the posted time (left off the arrival strips): 
 
 # ---------- meters, per block (class weeks) ----------
 m = w[w.meter].dropna(subset=["street", "block"])
-mdays = pd.Index(sorted(set(m.date.unique()) - hol))
+# Timestamps, like the holidays: pandas 1.3's unique() gives numpy datetime64 values, which never match one
+mdays = pd.Index(sorted(set(m.date.drop_duplicates()) - hol))
 mdays = mdays[mdays.dayofweek < 6]
 term_days = mdays[in_term(mdays)]
 ndow = [max(1, int((term_days.dayofweek == k).sum())) for k in range(6)]
