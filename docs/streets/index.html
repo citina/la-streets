@@ -71,6 +71,11 @@
   .note p{margin:0 0 6px;max-width:none}
   .note a{color:inherit}
   .note.end{margin-top:40px;max-width:none}
+  .note.end summary{cursor:pointer;list-style:none;width:max-content;font-weight:600;color:var(--ink)}
+  .note.end summary::-webkit-details-marker{display:none}
+  .note.end summary::after{content:" +";color:var(--ink-2);font-weight:400}
+  .note.end details[open] summary{margin-bottom:6px}
+  .note.end details[open] summary::after{content:" −"}
   h2{font-family:"Barlow Condensed","Barlow",system-ui,sans-serif;font-weight:700;font-size:34px;line-height:1.02;margin:8px 0 14px;text-wrap:balance}
   p{max-width:var(--measure);margin:0 0 14px}
   .code{display:inline-flex;gap:10px;align-items:center;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -97,7 +102,21 @@
           font:600 15px "Barlow",system-ui,sans-serif;padding:7px 14px;border-radius:8px;min-height:40px}
   .locbtn:disabled{opacity:.6;cursor:progress}
   .locbtn svg{width:16px;height:16px;flex:none}
-  .loc-note{font-size:14px;color:var(--ink-2);margin:8px 0 0}
+  .locbtn .short{display:none}
+  /* a phone: the data date leaves the top line, and the location button is its icon and "Near me", beside the search box
+     (its full name stays for screen readers) */
+  @media (max-width:560px){
+    main{padding-top:16px}
+    h1{margin:14px 0 8px}
+    .intro{margin-bottom:20px}
+    #mastRange,#mastRange+.dot{display:none}
+    .mast{flex-wrap:nowrap;align-items:flex-start}   /* "About" stays top right while the site names wrap */
+    .locbtn{padding:0 10px;gap:6px}
+    .findbar{column-gap:8px}
+    .locbtn .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .locbtn .short{display:inline}
+    .findbar .searchbox{flex:1 1 0;min-width:0}
+  }
   .searchbox{position:relative;flex:1 1 260px;max-width:420px}
   .searchbox>svg{position:absolute;left:11px;top:12px;width:16px;height:16px;color:var(--ink-2);pointer-events:none}
   .searchbox input{font:16px "Barlow",system-ui,sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--edge);
@@ -136,6 +155,7 @@
           background:color-mix(in oklab,var(--surface) 88%,transparent)}
   .maptag.r{right:8px}
   .maptag.hint{left:50%;top:10px;bottom:auto;transform:translateX(-50%);font-size:14px;padding:4px 10px;color:var(--ink);white-space:nowrap}
+  @media (max-width:560px){ .maptag.hint{white-space:normal;width:max-content;max-width:calc(100% - 64px);left:10px;transform:none} }
 
   /* ---------- the rules card ---------- */
   .panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:18px 18px 6px;scroll-margin-top:12px}
@@ -143,8 +163,18 @@
   .p-title{font-family:"Barlow Condensed","Barlow",sans-serif;font-weight:700;font-size:32px;line-height:1;margin:4px 0 6px}
   .p-sub{font-size:15px;color:var(--ink-2)}
   .card{border-top:1px solid var(--rule);padding:16px 0 14px;margin-top:14px}
-  .card h4{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:12px;font-weight:500;letter-spacing:.1em;
-           text-transform:uppercase;color:var(--ink-2);margin:0 0 12px}
+  .card h4{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:22px;font-weight:700;line-height:1.1;color:var(--ink);margin:0 0 12px}
+  /* 1. after street sweeping, a row per part, closed until tapped, with its short answer under its name (as on SF Streets) */
+  .card.fold{padding:12px 0;margin-top:0}
+  .card:not(.fold) + .card.fold{margin-top:14px}
+  .fold>summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+  .fold>summary::-webkit-details-marker{display:none}
+  .fold>summary::after{content:"+";grid-column:2;grid-row:1;color:var(--ink-2);font-size:18px;line-height:1}
+  .fold[open]>summary::after{content:"−"}
+  .fold>summary h4{margin:0}
+  .fold .peek{grid-column:1;font-size:15px;line-height:1.4;color:var(--ink-2)}
+  .fold[open]>summary{margin-bottom:12px}
+  .fold[open] .peek{display:none}
   .side + .side{margin-top:18px;padding-top:16px;border-top:1px dashed var(--rule)}
   .side-head{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
   .side-name{font-weight:600;font-size:15px;margin:0 0 4px}
@@ -236,7 +266,7 @@
 </style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Ticket Clock</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span><span id="mastRange">Updated weekly</span> · <a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Ticket Clock</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span><span id="mastRange">Updated weekly</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
   <div class="intro">
     <h1>LA Street Rules</h1>
     <p class="lede">Enter an LA address to see its street-sweeping schedule and next sweep dates, its meters, and recent parking-ticket patterns. Most LA streets are swept every other week, even where the sign shows only the day. <a href="#sweep" id="exLink" hidden>See an example</a></p>
@@ -245,7 +275,7 @@
   <div class="explorer">
     <div class="mapcol">
       <div class="findbar">
-        <button class="locbtn" id="locBtn" aria-describedby="locNote"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 0v2.6M8 13.4V16M0 8h2.6M13.4 8H16" stroke="currentColor" stroke-width="1.6"/></svg>Show blocks near me</button>
+        <button class="locbtn" id="locBtn"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 0v2.6M8 13.4V16M0 8h2.6M13.4 8H16" stroke="currentColor" stroke-width="1.6"/></svg><span class="lbl">Show blocks near me</span><span class="short" aria-hidden="true">Near me</span></button>
         <div class="searchbox">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.8" cy="6.8" r="5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m10.6 10.6 4.4 4.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
           <input type="search" id="q" placeholder="Enter an address or neighborhood" autocomplete="off" spellcheck="false"
@@ -253,7 +283,6 @@
           <ul class="sugg" id="sugg" role="listbox" hidden></ul>
         </div>
       </div>
-      <p class="loc-note" id="locNote">“Show blocks near me” only centers the map. The page doesn't send or save your location.</p>
       <div aria-live="polite"><p class="find-msg" id="findMsg"></p><div class="cands" id="cands"></div></div>
       <div class="mapwrap" id="mapwrap">
         <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" class="fit" aria-label="Show all of Los Angeles">LA</button><button id="znorth" class="north" aria-label="Turn the map back to north up" title="Turn north back up" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5 13.6 10H6.4Z" fill="var(--sign-red)"/><path d="M10 18.5 6.4 10h7.2Z" fill="currentColor" fill-opacity=".4"/></svg></button></div>
@@ -321,7 +350,7 @@
   </section>
   <section id="about">
     <div class="code"><b>About</b> These pages</div>
-    <p class="about">Made by <a href="https://github.com/citina">Citina Liang</a>, a PhD candidate in Industrial &amp; Systems Engineering at USC Viterbi who models how people behave and how diseases spread. After she missed the deadline for a campus parking pass, she built <a href="https://citina.github.io/curb-log/">Curb Log</a> to see when the meters near her office have space, then <a href="../">USC Ticket Clock</a> and LA Street Rules to learn when enforcement comes, near campus and across LA. All from the city's open data, updated every week. Built with Claude Code in about a week; the code is on <a href="https://github.com/citina/ticket-clock">GitHub</a>.</p>
+    <p class="about">Made by Citina Liang, built with Claude Code in about a week. Connect with me on <a href="https://www.linkedin.com/in/citina/">LinkedIn</a>, see the code and star it on <a href="https://github.com/citina/ticket-clock">GitHub</a>, or email me at <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a>. See more sister pages below.</p>
     <div class="sibs">
       <a class="sib" href="../"><div class="sib-name">USC Ticket Clock</div><div class="sib-txt">The streets around USC in more detail: when sweeping tickets land and how often meter officers come by.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
@@ -329,8 +358,11 @@
     </div>
   </section>
   <div class="note end">
-    <p><b>Not a guide to parking illegally.</b> This page doesn't suggest parking anywhere, or at any time, the rules don't allow. It shows when and where LADOT has written tickets, so the rules on each block and how they're enforced are easier to understand. Past tickets don't predict the next one: an officer can come by at any time, and a quiet hour in the data can still end in a ticket.</p>
-    <p><b>What the page loads.</b> The map images come from OpenStreetMap and the block data from this site, which GitHub hosts, one small area at a time, so both can tell roughly which part of the city you're looking at. If you use your location, it only moves the map; the exact spot isn't sent anywhere.</p>
+    <p><b>Not a guide to parking illegally.</b> Past tickets don't predict the next one, so always read the posted signs.</p>
+    <details><summary>More</summary>
+    <p>This page doesn't suggest parking anywhere, or at any time, the rules don't allow. It shows when and where LADOT has written tickets, so the rules on each block and how they're enforced are easier to understand. An officer can come by at any time, and a quiet hour in the data can still end in a ticket.</p>
+    <p><b>What the page loads.</b> The map images come from OpenStreetMap and the block data from this site, which GitHub hosts, one small area at a time, so both can tell roughly which part of the city you're looking at. “Show blocks near me” only moves the map; the page doesn't send or save your location.</p>
+    </details>
   </div>
 </main>
 <div id="tip" hidden></div>
@@ -505,7 +537,7 @@ fetch('hoods.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json
     el.addEventListener('pointerleave',hideTip);
     return {name, rings, box:[x0,y0,x1,y1], el}; });
   $('#hint').textContent='Pick a neighborhood to see its blocks';
-  hoodTag(vb.w*PX_M<=SHOW_M); legend();
+  hoodTag(vb.w*PX_M<=SHOW_M); legend(); cardHood();
 }).catch(e=>console.warn('no neighborhoods:',e));
 function inHood(h, x, y){ const [x0,y0,x1,y1]=h.box; if(x<x0||x>x1||y<y0||y>y1) return false; let c=false;
   h.rings.forEach(p=>{ for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){ const yi=p[i+1], yj=p[j+1];
@@ -544,8 +576,19 @@ function showMap(){ if(!stacked()) return; const r=wrap.getBoundingClientRect();
 async function goBlock(entry, fromSearch){
   const [h, ci, suffix]=entry.e, key=META.cells[ci], recs=await loadCell(key), id=blockId(entry.s,h,suffix);
   const b=recs.find(r=>r.id===id); if(!b) return;
-  const [x,y]=blockCentre(b); jumpTo(x,y,vb.w*PX_M<BOX_M?vb.w:BOX_M/PX_M); pick(b,false); if(fromSearch) showMap();
+  const [x,y]=blockCentre(b); jumpTo(x,y,vb.w*PX_M<BOX_M?vb.w:BOX_M/PX_M); pick(b,false);
+  if(fromSearch){ if(stacked()) msg(answer(b)); showMap(); }
 }
+// the card in one line, for above the map on a phone: each side's sweeping weeks and next date
+function answer(b){
+  const groups=sweepGroups(b), short=d=>d.length===1?DAYS[d[0]]:d.every((x,i)=>!i||x===d[i-1]+1)?DAYS[d[0]]+'–'+DAYS[d[d.length-1]]:d.map(x=>DAYS[x]).join(' & ');
+  const who=g=>g.length===2?'both sides':sideName(b,g[0][0]).replace(/ \(.+\)$/,'').toLowerCase();
+  const txt=groups.length?groups.map(g=>{ const [, dows, , , on]=g[0];
+      return `${who(g)} swept ${on?phaseTxt(on)+' ':'every '}${short(dows)}, next ${nextDays(dows,on,1)[0]}`; }).join('; ')
+    :'no sweeping schedule found';
+  return `<b>${esc(blockName(b))}</b>: ${esc(txt)} · <a href="#panel" data-card>See the card ↓</a>`; }
+$('#findMsg').addEventListener('click',e=>{ if(!e.target.closest('[data-card]')) return; e.preventDefault();
+  $('#panel').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); });
 // jumps (search, a link, your location) show the map north up; two fingers can still turn it
 function jumpTo(x, y, w){ rot=0; centerOn(x,y,w); }
 // a searched street: outline its blocks (still drawn when zoomed out) and fit the map to them
@@ -632,13 +675,23 @@ function noSchedule(host, b, n){
   H('div',{className:'evid',innerHTML:`${signs.some(x=>x.on)?'*':''}From <a href="https://www.arcgis.com/home/item.html?id=0e16fa641a0846a3ae29bffb150314dc">StreetsLA's posted routes</a> around this block.`
     +`${split?' Each side of the street gets one of these, and the list doesn\'t say which.':''}${lookup}`},host);
 }
+// a part of the card that opens on tap; one left open stays open for the next block
+const openFolds=new Set();
+function fold(host, key, title, peek){
+  const d=H('details',{className:'card fold',open:openFolds.has(key)},host), sm=H('summary',{},d);
+  H('h4',{textContent:title},sm); H('span',{className:'peek',textContent:peek},sm);
+  d.addEventListener('toggle',()=>d.open?openFolds.add(key):openFolds.delete(key));
+  return H('div',{},d); }
+// the neighborhood the picked block is in (the outlines may load after the card)
+function cardHood(){ const el=$('#cardHood'); if(!el) return; const c=selected&&HOODS&&blockCentre(selected), h=c&&HOODS.find(h=>inHood(h,c[0],c[1]));
+  el.textContent=h?h.name:''; el.hidden=!h; }
 function renderCard(b){
   const p=$('#panel'); p.innerHTML='';
-  if(!b){ H('div',{className:'p-eyebrow',textContent:'Street rules'},p); H('div',{className:'p-title',textContent:'Pick a block'},p);
+  if(!b){ H('div',{className:'p-title',textContent:'Pick a block'},p);
     H('p',{className:'p-sub',style:'margin:8px 0 14px',textContent:'Show the blocks near you, search for a street, or pick a neighborhood on the map, then tap a block. Its sweeping day, hours and weeks, its meters, and what else gets ticketed there show up here.'},p); return; }
-  H('div',{className:'p-eyebrow',textContent:'Street rules'},p);
   H('div',{className:'p-title',textContent:blockName(b)},p);
   if(b.x.length) H('div',{className:'p-sub',textContent:between(b)},p);
+  H('div',{className:'p-sub',id:'cardHood'},p); cardHood();
   H('div',{className:'p-sub',style:'margin-top:2px',textContent:`${b.n.toLocaleString()} LADOT ticket${b.n>1?'s':''} since ${since()}`},p);
 
   const sc=H('div',{className:'card'},p); H('h4',{textContent:'Street sweeping'},sc);
@@ -664,8 +717,9 @@ function renderCard(b){
   if(groups.some(g=>g.length===1)) H('div',{className:'evid',textContent:'Odd and even mean house numbers: one side of the street has the odd addresses, the other side the even ones, and each side can have its own sweeping day.'},sc);
   if(groups.length) H('div',{className:'evid',innerHTML:'*Signs often show only the day. Weeks and times are from <a href="https://www.arcgis.com/home/item.html?id=0e16fa641a0846a3ae29bffb150314dc">StreetsLA\'s posted routes</a>; check your street at <a href="https://streets.lacity.gov/services/street-sweeping">streets.lacity.gov</a>.'},sc);
 
-  const mc=H('div',{className:'card'},p); H('h4',{textContent:'Meters'},mc);
   const mt=b.k.some(t=>META.kinds[t[0]]==='Meter expired'), m=b.m;
+  const mc=fold(p,'meters','Meters',b.sp?`${b.sp.toLocaleString()} metered space${b.sp>1?'s':''}${m?` · about ${m[0]} officer visit${m[0]===1?'':'s'} a weekday`:''}`
+    :mt?'Meter tickets, but no meters listed':'No meters');
   if(!b.sp&&!mt) H('div',{className:'rule-line',textContent:`No meters appear in LADOT's inventory for this block, and no meter tickets since ${since()}.`},mc);
   else {
     H('div',{className:'rule-line',innerHTML:b.sp?`<b>${b.sp} metered space${b.sp>1?'s':''}</b> on this block.`:`<b>No meters appear in LADOT's inventory</b> for this block, though meter tickets were written at its addresses.`},mc);
@@ -675,7 +729,7 @@ function renderCard(b){
       DAYS.slice(0,6).forEach((dn,d)=>{ const c=H('div',{},o); H('span',{className:'k',textContent:dn},c); H('span',{className:'v',textContent:m[2][d]+'%'},c); }); }
     else if(b.sp) H('div',{className:'evid',textContent:'Too few meter tickets here to estimate how often officers come by.'},mc); }
 
-  const kc=H('div',{className:'card'},p); H('h4',{textContent:'What gets ticketed here'},kc);
+  const kc=fold(p,'kinds','What gets ticketed here',`${b.n.toLocaleString()} since ${since()} · most: ${META.kinds[b.k[0][0]]}`);
   const cur=charts(b), tappable=!!(META.kind_src||cur.size);
   if(tappable) H('div',{className:'evid',style:'margin:0',textContent:'Tap a kind for its ticket code and the times of day it gets ticketed here.'},kc);
   const kg=H('div',{className:'kinds',style:'margin-top:6px'},kc), kmax=b.k[0][1], FEW=5;
@@ -707,6 +761,11 @@ function renderCard(b){
 
 /* ============ search: a street, or a house number and a street ============ */
 const q=$('#q'), sugg=$('#sugg');
+// the box's hint, shortened where it doesn't fit (a phone, with "Near me" beside the box)
+function fitHint(){ const cs=getComputedStyle(q), c=document.createElement('canvas').getContext('2d'); c.font=`${cs.fontSize} ${cs.fontFamily}`;
+  const room=q.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-4;
+  q.placeholder=['Enter an address or neighborhood','Enter an address'].find(t=>c.measureText(t).width<=room)||'Address'; }
+fitHint(); document.fonts&&document.fonts.ready.then(fitHint);
 let loadingStreets=null, active=-1, options=[];
 const ABBR={avenue:'ave',av:'ave',street:'st',boulevard:'blvd',bl:'blvd',drive:'dr',place:'pl',road:'rd',lane:'ln',court:'ct',north:'n',south:'s',east:'e',west:'w'};
 const words=s=>s.toLowerCase().replace(/[.,#()]/g,' ').split(/\s+/).filter(Boolean).map(w=>ABBR[w]||w);
@@ -769,7 +828,7 @@ function choose(o){
 $('#locBtn').addEventListener('click',()=>{
   const btn=$('#locBtn');
   if(!navigator.geolocation||!window.isSecureContext){ msg('This browser can\'t share a location with the page. Search for your street instead.'); return; }
-  btn.disabled=true; msg('Finding your location…'); $('#cands').innerHTML=''; q.value=''; clearStreet();
+  btn.disabled=true; msg('Finding your location… It only centers the map. The page doesn\'t send or save your location.'); $('#cands').innerHTML=''; q.value=''; clearStreet();
   navigator.geolocation.getCurrentPosition(async pos=>{
     btn.disabled=false; const {latitude:lat, longitude:lon}=pos.coords;
     if(lat<LA[1]||lat>LA[3]||lon<LA[0]||lon>LA[2]){ fix=null; drawYou();
@@ -865,7 +924,8 @@ renderCard(null);
 fitLA();
 fetch('data/index.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(async m=>{
   META=m;
-  $('#mastRange').textContent=`Data through ${fmtDate(m.end)} · updated weekly`;
+  // the day the weekly build ran; data from before 2026-09-29 only has the last day of tickets
+  $('#mastRange').textContent=m.built?`Last updated ${fmtDate(m.built)}`:`Data through ${fmtDate(m.end)} · updated weekly`;
   $('#mData').textContent=`LADOT parking citations (data.lacity.org, dataset 4f5p-udkv): all ${m.total.toLocaleString()} tickets written in the City of Los Angeles in the two years from ${fmtDate(m.start)} to ${fmtDate(m.end)}. ${m.matched.toLocaleString()} of them (${pct(m.matched/m.total)}) have an address that matches a block. The page is rebuilt every week from LADOT's latest data, and the two-year window moves with it.`;
   showBlocks();
   if(calText()){ $('#sweep').hidden=false; drawCal(); const f=$('#signView'); if(f.dataset.src) f.src=f.dataset.src;
@@ -876,8 +936,16 @@ fetch('data/index.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r
   if(id){ const s=await getStreets(); for(let i=0;i<s.length;i++) for(const e of s[i]) if(blockId(i,e[0],e[2])===id) return goBlock({s:i,e}); }
 }).catch(e=>{ console.error(e); msg('The block data didn\'t load. Try reloading the page.'); });
 
+// beside the card (wide screens): the map column sticks so its bottom (the map and legend) stays on screen even when it's
+// taller than the window, and the card starts level with the map's top, below the search bar
+const mapcol=$('.mapcol'), panel=$('#panel');
+function stick(){ const side=!stacked();
+  mapcol.style.top=side?Math.min(12,innerHeight-mapcol.offsetHeight-12)+'px':'';
+  panel.style.marginTop=side?wrap.getBoundingClientRect().top-mapcol.getBoundingClientRect().top+'px':''; }
+new ResizeObserver(stick).observe(mapcol); addEventListener('resize',stick); stick();
+
 // keep the map's shape and tiles right when the width changes (not on height-only changes like a phone's URL bar)
 let lastW=innerWidth, rt=0;
-addEventListener('resize',()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(()=>{ setVB(); drawCal(); },150); });
+addEventListener('resize',()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(()=>{ setVB(); drawCal(); fitHint(); },150); });
 })();
 </script>

@@ -379,7 +379,7 @@
   </section>
   <section id="about">
     <div class="code"><b>About</b> These pages</div>
-    <p class="about">Made by <a href="https://github.com/citina">Citina Liang</a>, a PhD candidate in Industrial &amp; Systems Engineering at USC Viterbi who models how people behave and how diseases spread. After she missed the deadline for a campus parking pass, she built <a href="https://citina.github.io/curb-log/">Curb Log</a> to see when the meters near her office have space, then USC Ticket Clock and <a href="streets/">LA Street Rules</a> to learn when enforcement comes, near campus and across LA. All from the city's open data, updated every week. Built with Claude Code in about a week; the code is on <a href="https://github.com/citina/ticket-clock">GitHub</a>.</p>
+    <p class="about">Made by Citina Liang, built with Claude Code in about a week. Connect with me on <a href="https://www.linkedin.com/in/citina/">LinkedIn</a>, see the code and star it on <a href="https://github.com/citina/ticket-clock">GitHub</a>, or email me at <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a>. See more sister pages below.</p>
     <div class="sibs">
       <a class="sib" href="streets/"><div class="sib-name">LA Street Rules</div><div class="sib-txt">Every block in the City of Los Angeles: its sweeping schedule, its meters, and what gets ticketed there.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
@@ -436,7 +436,8 @@ const allDay=(m,dw,f)=>stayP(m,dw,0,24,f);
 const visitsPerDay=m=>{ let s=0; for(let d=0; d<5; d++) for(let j=0;j<24;j++) s+=m.r[d][j]; return m.c*s/5; };
 
 /* ============ header bits ============ */
-$('#mastRange').textContent=`Data through ${fmtDate(D.end,true).replace(/^\w+, /,'')} · updated weekly`;
+// the day the weekly build ran; data from before 2026-09-29 only has the last day of tickets
+$('#mastRange').textContent=D.built?`Last updated ${fmtDate(D.built,true).replace(/^\w+, /,'')}`:`Data through ${fmtDate(D.end,true).replace(/^\w+, /,'')} · updated weekly`;
 $('#mData').textContent=`LADOT parking citations (data.lacity.org, dataset 4f5p-udkv). I kept all ${D.total.toLocaleString()} tickets inside a box of about 2.5 × 2.5 km around campus, from 2014 to ${fmtDate(D.end,true)}. Everything on the page uses the ${D.window.toLocaleString()} tickets written in the two years from ${fmtDate(D.start,true)}, so it reflects how enforcement works now. The page is rebuilt every week from LADOT's latest data, and the two-year window moves with it. Which blocks have meters comes from LADOT's meter inventory (dataset s49e-q6j2), so blocks whose meters never drew a ticket still count.`;
 
 /* ============ map ============ */

@@ -543,7 +543,8 @@ cell_ix = {k: i for i, k in enumerate(cell_keys)}
 streets = [[] for _ in names]
 for s_ix, h, key, suffix in index:
     streets[s_ix].append([h, cell_ix[key], suffix] if suffix else [h, cell_ix[key]])
-meta = dict(start=str(START.date()), end=str(END.date()), total=total, matched=len(d), phase=round(phase_hits / phase_all, 3),
+# built: the day this ran, in LA, for the page's "Last updated" (the tickets themselves end a few days earlier)
+meta = dict(start=str(START.date()), end=str(END.date()), built=str(pd.Timestamp.now(tz="America/Los_Angeles").date()), total=total, matched=len(d), phase=round(phase_hits / phase_all, 3),
             cell=CELL, sweep_min=SWEEP_MIN, routes_around=True, chart_min=KIND_MIN,
             names=names, kinds=kinds, kind_src=kind_src, kind_note=kind_note, cells=cell_keys,
             weeks=dict(posted=wp, other=wo, fifth=wf, off_first_year=off_first))

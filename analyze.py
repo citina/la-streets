@@ -179,8 +179,9 @@ for lab, dset in (("term", term_days), ("off", mdays.difference(term_days))):
     nd = pd.Series(dset.dayofweek).value_counts().reindex(range(6), fill_value=1)
     heat[lab] = cnt.div(nd.values, axis=0).round(2).values.tolist()
 
+# built: the day this ran, in LA, for the page's "Last updated" (the tickets themselves end a few days earlier)
 bundle = dict(frame=dict(W=F["W"], H=F["H"], mpp=round(MPP, 3)), start=str(START.date()), end=str(END.date()),
-              total=len(d), window=len(w), phase=round(phase_hits / phase_all, 3),
+              built=str(pd.Timestamp.now(tz="America/Los_Angeles").date()), total=len(d), window=len(w), phase=round(phase_hits / phase_all, 3),
               share=dict(sweep=round(float(w.sweep.mean()), 3), meter=round(float(w.meter.mean()), 3)),
               fines=dict(sweep=int(w[w.sweep].fine.median()), meter=int(m.fine.median())),
               rules=dict(sweep_min=SWEEP_MIN, min_tix=MIN_TIX),
