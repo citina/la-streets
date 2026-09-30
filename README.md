@@ -1,6 +1,6 @@
 # LA Street Rules & USC Ticket Clock
 
-**[LA Street Rules](https://citina.github.io/ticket-clock/streets/)** is a map of the City of Los Angeles that answers,
+**[LA Street Rules](https://citina.github.io/la-streets/streets/)** is a map of the City of Los Angeles that answers,
 for any block:
 
 - **When is it swept?** The day, hours and weeks of the month for each side of the street, and the next sweep dates.
@@ -12,7 +12,7 @@ still say just "No parking Thursday". LADOT's tickets show when enforcement actu
 Street Rules reads the last two years of them (about 3.9 million), matches most of them by address to one of about
 48,000 blocks, and takes each side's sweeping weeks and times from StreetsLA's posted routes. It's rebuilt every week.
 
-**[USC Ticket Clock](https://citina.github.io/ticket-clock/)** is where it started: the streets around campus, in more
+**[USC Ticket Clock](https://citina.github.io/la-streets/)** is where it started: the streets around campus, in more
 detail, down to when the sweeping officer usually shows up.
 
 ![Searching for 11100 Weddington, reading each side's sweeping sign, then opening the block's meters and what gets ticketed there](readme/demo.gif)
