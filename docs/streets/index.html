@@ -410,6 +410,9 @@ const gRotT=S('g',{},tileSvg), gTiles=S('g',{},gRotT), gRot=S('g',{},svg);
 const gHood=S('g',{class:'hoods'},gRot), gStreet=S('g',{},gRot), gHalo=S('g',{},gRot), gBlk=S('g',{},gRot), gStreetLine=S('g',{},gRot), gYou=S('g',{},gRot), gHit=S('g',{},gRot);
 let vb={x:(LX0+LX1)/2, y:(LY0+LY1)/2, w:LX1-LX0, h:0}, rot=0;
 const north=$('#znorth'), turnNorm=a=>Math.atan2(Math.sin(a),Math.cos(a));
+// a page opened in a background tab can lay the map out at no width; the view is then a thin sliver many times taller
+// than the city, so map images and blocks wait until the map has a size
+const hasSize=()=>wrap.clientWidth>0&&wrap.clientHeight>0;
 const minW=()=>150/PX_M, maxW=()=>Math.max(LX1-LX0, (LY1-LY0)*wrap.clientWidth/Math.max(1,wrap.clientHeight));
 function setVB(){
   const asp=wrap.clientHeight/Math.max(1,wrap.clientWidth);
@@ -424,16 +427,17 @@ function setVB(){
 // the part of the map on screen, as a box in map units (bigger than the view while the map is turned)
 function viewBounds(){ const c=Math.abs(Math.cos(rot)), s=Math.abs(Math.sin(rot)), hx=(c*vb.w+s*vb.h)/2, hy=(s*vb.w+c*vb.h)/2, cx=vb.x+vb.w/2, cy=vb.y+vb.h/2;
   return [cx-hx,cy-hy,cx+hx,cy+hy]; }
-function centerOn(x, y, w){ vb.w=w; const asp=wrap.clientHeight/Math.max(1,wrap.clientWidth); vb.x=x-w/2; vb.y=y-w*asp/2; setVB(); }
+function centerOn(x, y, w){ vb.w=Math.min(maxW(),Math.max(minW(),w)); w=vb.w; const asp=wrap.clientHeight/Math.max(1,wrap.clientWidth); vb.x=x-w/2; vb.y=y-w*asp/2; setVB(); }
 function fitLA(){ rot=0; pickHood(-1); centerOn((LX0+LX1)/2,(LY0+LY1)/2,Math.max(LX1-LX0,(LY1-LY0)*wrap.clientWidth/Math.max(1,wrap.clientHeight))); }
 
 // OpenStreetMap tiles for the view only (their policy allows what a reader is looking at, nothing ahead of time)
 const tileGroups=new Map();   // zoom -> {g, tiles: Map(key -> image), pending}
 let tz=null;
 function drawTiles(){
+  if(!hasSize()) return;
   // tiles at their own size (256 px), so the map's labels read at their normal size; picking sharper tiles for
   // high-resolution screens drew them at half size
-  const cw=wrap.clientWidth||600;
+  const cw=wrap.clientWidth;
   const z=Math.max(10,Math.min(19,Math.round(17+Math.log2(cw/vb.w)))), size=256*2**(17-z), pad=vb.w/cw;
   if(!tileGroups.has(z)) tileGroups.set(z,{g:S('g',{},gTiles), tiles:new Map(), pending:0});
   const L=tileGroups.get(z); gTiles.appendChild(L.g);   // the current zoom draws on top while the old one fills the gaps
@@ -487,7 +491,7 @@ function showBlocks(){
   const on=vb.w*PX_M<=SHOW_M;
   $('#hint').hidden=on||!META; gBlk.style.display=gHit.style.display=gHalo.style.display=on?'':'none'; gStreetLine.style.display=on?'none':'';
   gHood.classList.toggle('near',on); hoodTag(on); legend();
-  if(!on||!META) return;
+  if(!on||!META||!hasSize()) return;
   cellKeys(...viewBounds()).forEach(k=>loadCell(k));
 }
 // the cells that touch a box in map units
@@ -944,8 +948,14 @@ function stick(){ const side=!stacked();
   panel.style.marginTop=side?wrap.getBoundingClientRect().top-mapcol.getBoundingClientRect().top+'px':''; }
 new ResizeObserver(stick).observe(mapcol); addEventListener('resize',stick); stick();
 
-// keep the map's shape and tiles right when the width changes (not on height-only changes like a phone's URL bar)
-let lastW=innerWidth, rt=0;
-addEventListener('resize',()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(()=>{ setVB(); drawCal(); fitHint(); },150); });
+// redraw the calendar and refit the search placeholder when the width changes (not on height-only changes like a phone's URL bar)
+let lastIW=innerWidth, rt=0;
+addEventListener('resize',()=>{ if(innerWidth===lastIW) return; lastIW=innerWidth; clearTimeout(rt); rt=setTimeout(()=>{ drawCal(); fitHint(); },150); });
+// keep the map's shape and tiles right when its box changes size, around the same center. A map first laid out at no
+// size (a page opened in a background tab) fits LA once it has one, or keeps a linked block in the middle.
+let sized=hasSize(), lastW=wrap.clientWidth, lastH=wrap.clientHeight, mapT=0;
+new ResizeObserver(()=>{ const w=wrap.clientWidth, h=wrap.clientHeight; if(!w||!h||(w===lastW&&h===lastH)) return; lastW=w; lastH=h;
+  if(!sized){ sized=true; if(selected) centerOn(vb.x+vb.w/2,vb.y+vb.h/2,vb.w); else fitLA(); return; }
+  clearTimeout(mapT); mapT=setTimeout(()=>centerOn(vb.x+vb.w/2,vb.y+vb.h/2,vb.w),150); }).observe(wrap);
 })();
 </script>
