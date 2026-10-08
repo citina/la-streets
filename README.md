@@ -63,6 +63,10 @@ and it shows:
   length of stay, half hour by half hour, in USC class weeks.
 - **Everything else ticketed there,** with the fine and the usual time of day.
 
+![Picking the 500 block of 28th St, its summary, when the sweeping officer's first and last tickets land, then the chance of a meter ticket for a two-hour stay on Thursday and Saturday](readme/usc-demo.gif)
+*28th St, 500 block. A meter officer who finds every meter paid writes no ticket, so those visits are missing from the
+data: "estimate" adds them back, and "at least" counts only the visits that wrote a ticket.*
+
 Below the map, a summary for the whole area: every-other-week sweeping, when the officers arrive, and the three waves
 of meter patrols a day.
 
