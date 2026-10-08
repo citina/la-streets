@@ -71,11 +71,6 @@
   .note p{margin:0 0 6px;max-width:none}
   .note a{color:inherit}
   .note.end{margin-top:40px;max-width:none}
-  .note.end summary{cursor:pointer;list-style:none;width:max-content;font-weight:600;color:var(--ink)}
-  .note.end summary::-webkit-details-marker{display:none}
-  .note.end summary::after{content:" +";color:var(--ink-2);font-weight:400}
-  .note.end details[open] summary{margin-bottom:6px}
-  .note.end details[open] summary::after{content:" −"}
   h2{font-family:"Barlow Condensed","Barlow",system-ui,sans-serif;font-weight:700;font-size:34px;line-height:1.02;margin:8px 0 14px;text-wrap:balance}
   p{max-width:var(--measure);margin:0 0 14px}
   .code{display:inline-flex;gap:10px;align-items:center;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -109,8 +104,12 @@
     main{padding-top:16px}
     h1{margin:14px 0 8px}
     .intro{margin-bottom:20px}
-    #mastRange,#mastRange+.dot{display:none}
-    .mast{flex-wrap:nowrap;align-items:flex-start}   /* "About" stays top right while the site names wrap */
+    /* "About" stays top right while the site names wrap, and the date gets its own line under them */
+    .mast{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+    .mast .end{display:contents}
+    .mast .end a{grid-area:1/2}
+    #mastRange{grid-area:2/1}
+    .mast .dot{display:none}
     .locbtn{padding:0 10px;gap:6px}
     .findbar{column-gap:8px}
     .locbtn .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -266,7 +265,7 @@
 </style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Ticket Clock</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span><span id="mastRange">Updated weekly</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Ticket Clock</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span id="mastRange">Updated weekly</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
   <div class="intro">
     <h1>LA Street Rules</h1>
     <p class="lede">Enter an LA address to see its street-sweeping schedule and next sweep dates, its meters, and recent parking-ticket patterns. Most LA streets are swept every other week, even where the sign shows only the day. <a href="#sweep" id="exLink" hidden>See an example</a></p>
@@ -350,7 +349,7 @@
   </section>
   <section id="about">
     <div class="code"><b>About</b> These pages</div>
-    <p class="about">Made by Citina Liang, built with Claude Code in about a week. Connect with me on <a href="https://www.linkedin.com/in/citina/">LinkedIn</a>, see the code and star it on <a href="https://github.com/citina/la-streets">GitHub</a>, or email me at <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a>. See more sister pages below.</p>
+    <p class="about">Made by Citina Liang with Claude Code in less than a week. The page updates itself weekly. All sources are from official public data. <a href="https://www.linkedin.com/in/citina/">LinkedIn</a> · <a href="https://github.com/citina/la-streets">GitHub</a> · <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a></p>
     <div class="sibs">
       <a class="sib" href="../"><div class="sib-name">USC Ticket Clock</div><div class="sib-txt">The streets around USC in more detail: when sweeping tickets land and how often meter officers come by.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
@@ -359,10 +358,8 @@
   </section>
   <div class="note end">
     <p><b>Not a guide to parking illegally.</b> Past tickets don't predict the next one, so always read the posted signs.</p>
-    <details><summary>More</summary>
     <p>This page doesn't suggest parking anywhere, or at any time, the rules don't allow. It shows when and where LADOT has written tickets, so the rules on each block and how they're enforced are easier to understand. An officer can come by at any time, and a quiet hour in the data can still end in a ticket.</p>
     <p><b>What the page loads.</b> The map images come from OpenStreetMap and the block data from this site, which GitHub hosts, one small area at a time, so both can tell roughly which part of the city you're looking at. “Show blocks near me” only moves the map; the page doesn't send or save your location.</p>
-    </details>
   </div>
 </main>
 <div id="tip" hidden></div>
@@ -929,7 +926,7 @@ fitLA();
 fetch('data/index.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(async m=>{
   META=m;
   // the day the weekly build ran; data from before 2026-09-29 only has the last day of tickets
-  $('#mastRange').textContent=m.built?`Last updated ${fmtDate(m.built)}`:`Data through ${fmtDate(m.end)} · updated weekly`;
+  $('#mastRange').textContent=m.built?`Updated ${new Date(m.built+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',...(m.built.slice(0,4)!=new Date().getFullYear()?{year:'numeric'}:{})})}`:`Data through ${fmtDate(m.end)} · updated weekly`;
   $('#mData').textContent=`LADOT parking citations (data.lacity.org, dataset 4f5p-udkv): all ${m.total.toLocaleString()} tickets written in the City of Los Angeles in the two years from ${fmtDate(m.start)} to ${fmtDate(m.end)}. ${m.matched.toLocaleString()} of them (${pct(m.matched/m.total)}) have an address that matches a block. The page is rebuilt every week from LADOT's latest data, and the two-year window moves with it.`;
   showBlocks();
   if(calText()){ $('#sweep').hidden=false; drawCal(); const f=$('#signView'); if(f.dataset.src) f.src=f.dataset.src;
