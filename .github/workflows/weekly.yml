@@ -42,6 +42,21 @@ jobs:
       - name: Fetch citations
         run: python3 fetch_citations.py
 
+      # The street centerlines tell analyze.py which compass side of each block has the even house numbers.
+      # When fetch_citations.py couldn't get them (the city's map server was down), use the whole-city copy the
+      # city job keeps in the city-downloads release; with neither, analyze.py names far fewer sides, from tickets.
+      - name: Street centerlines, if the city's map server was down
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f data/centerlines_usc.json ] && exit 0
+          if gh release download city-downloads --pattern city-downloads.tar.gz --dir "$RUNNER_TEMP" &&
+             tar -xzf "$RUNNER_TEMP/city-downloads.tar.gz" -C data city/centerlines.json; then
+            echo "::warning::street centerlines taken from the city-downloads release; the city's map server was down"
+          else
+            echo "::warning::no street centerlines this week; the side names come from the tickets alone"
+          fi
+
       - name: Analyze and build
         run: |
           python3 analyze.py | tee analyze.log

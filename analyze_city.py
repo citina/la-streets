@@ -31,25 +31,8 @@ METER_MIN = 20        # meter tickets before we model a block's patrols
 KIND_MIN = 50         # tickets before a kind gets its own dot chart on a block (its top kind always has one)
 VISIT_GAP = 10        # minutes: meter tickets closer than this on one block = one officer visit
 SLOT0, NSLOT = 8 * 60, 24   # half hours from 8:00 am to 8:00 pm (meter hours)
-FAR = 600             # metres: a match this far from the ticket's own coordinates is treated as wrong
-SPLIT = 800           # metres: parts of one street + hundred block this far apart are separate places
-
-# ticket spellings -> the centerline's suffixes and directions
-CL_SUFFIX = {"AV": "AVE", "AVENUE": "AVE", "STR": "ST", "STREET": "ST", "BL": "BLVD", "BLV": "BLVD", "BOULEVARD": "BLVD",
-             "DRIVE": "DR", "PLACE": "PL", "RD": "ROAD", "WY": "WAY", "LN": "LANE", "COURT": "CT", "TERR": "TER",
-             "TERRACE": "TER", "CIRCLE": "CIR", "HIGHWAY": "HWY", "TRL": "TR", "TRAIL": "TR", "PARKWAY": "PKWY",
-             "PLZ": "PZ", "PLAZA": "PZ"}
-CL_DIRS = {"N": "N", "S": "S", "E": "E", "W": "W", "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
 NICE_SUFFIX = {"ROAD": "Rd", "LANE": "Ln", "TR": "Trl", "PZ": "Plaza", "CK": "Creek"}
 NICE_SFXDIR = {"(S/R)": "(south roadway)", "(N/R)": "(north roadway)"}   # Exposition Blvd's two roadways
-
-
-def z17(lon, lat):
-    """Zoom-17 Web Mercator pixels, the same grid as OpenStreetMap's tiles."""
-    n = 2 ** 17 * 256
-    r = np.radians(np.asarray(lat, dtype=float))
-    with np.errstate(invalid="ignore"):   # missing coordinates stay NaN
-        return (np.asarray(lon, dtype=float) + 180) / 360 * n, (1 - np.log(np.tan(r) + 1 / np.cos(r)) / math.pi) / 2 * n
 
 
 def lonlat(x, y):
@@ -58,81 +41,16 @@ def lonlat(x, y):
     return np.asarray(x) / n * 360 - 180, np.degrees(np.arctan(np.sinh(math.pi * (1 - 2 * np.asarray(y) / n))))
 
 
-PX_M = 156543.03392 * math.cos(math.radians(34.05)) / 2 ** 17   # metres per zoom-17 pixel in LA
-
-# ---------- street centerlines ----------
-feats = json.loads((CITY / "centerlines.json").read_text())["features"]
-segs = []
-for f in feats:
-    p, g = f["properties"], f["geometry"]
-    if not g or not (p.get("STNAME") or "").strip():
-        continue
-    parts = g["coordinates"] if g["type"] == "MultiLineString" else [g["coordinates"]]
-    pts = np.array([c for ln in parts for c in ln])
-    x, y = z17(pts[:, 0], pts[:, 1])
-    rl = (p["ADLF"] or 0, p["ADLT"] or 0)
-    rr = (p["ADRF"] or 0, p["ADRT"] or 0)
-    nums = [v for v in (*rl, *rr) if v]
-    segs.append(dict(
-        key=((p["TDIR"] or "").strip(), p["STNAME"].strip().upper(), (p["STSFX"] or "").strip().upper(), (p["SFXDIR"] or "").strip().upper()),
-        l=rl, r=rr, lo=min(nums) if nums else 0, hi=max(nums) if nums else 0,
-        a=p["INT_ID_FROM"], b=p["INT_ID_TO"], zip=p["ZIP_L"] or p["ZIP_R"] or 0, xy=np.c_[x, y]))
-MID = np.array([s["xy"].mean(0) for s in segs])
-KEYS = sorted({s["key"] for s in segs})
-KEY_IX = {k: i for i, k in enumerate(KEYS)}
-SID = np.array([KEY_IX[s["key"]] for s in segs])
-by_name = collections.defaultdict(list)
-for i, s in enumerate(segs):
-    by_name[s["key"][1]].append(i)
-SUFFIXES_CL = {s["key"][2] for s in segs if s["key"][2]}
+# ---------- street centerlines (Centerlines in citations.py, shared with the USC page) ----------
+cl = Centerlines(CITY / "centerlines.json")
+segs, MID, KEYS, SID = cl.segs, cl.mid, cl.keys, cl.sid
+parse_city, match = cl.parse, cl.match
 
 
 def street_name(key):
     tdir, name, sfx, sdir = key
     sfx = NICE_SUFFIX.get(sfx, sfx.title())
     return " ".join(t for t in (tdir, nice_street(name), sfx, NICE_SFXDIR.get(sdir, sdir.title())) if t)
-
-
-def parse_city(loc):
-    """'3601 VERMONT AV S' -> (3601, 'VERMONT', 'AVE', 'S'); intersections and blanks -> None."""
-    m = re.match(r"^\s*(\d{1,6})[A-Z]?\s+(.+)$", loc) if isinstance(loc, str) else None
-    if not m:
-        return None
-    toks = [t for t in re.split(r"[\s.]+", m.group(2).upper()) if t]
-    d = sfx = None
-    if len(toks) > 1 and toks[0] in CL_DIRS:
-        d = CL_DIRS[toks.pop(0)]
-    if len(toks) > 1 and toks[-1] in CL_DIRS:
-        d = CL_DIRS[toks.pop()]
-    if len(toks) > 1 and CL_SUFFIX.get(toks[-1], toks[-1]) in SUFFIXES_CL:
-        sfx = CL_SUFFIX.get(toks[-1], toks[-1])
-        toks.pop()
-    name = " ".join(toks)
-    name = re.sub(r"^AVE? (\d+)$", r"AVENUE \1", name)
-    name = re.sub(r"^SAINT ", "ST ", re.sub(r"^MOUNT ", "MT ", name))
-    return int(m.group(1)), name, sfx, d
-
-
-def in_range(n, rng):
-    a, b = rng
-    return bool(a or b) and min(a, b) <= n <= max(a, b) and n % 2 in (a % 2, b % 2)
-
-
-def match(num, name, sfx, d, x, y):
-    """Index of the centerline segment for an address, or None; x, y are the ticket's own zoom-17 pixels."""
-    c = by_name.get(name)
-    if not c:
-        return None
-    c = [i for i in c if segs[i]["key"][2] == sfx] or c if sfx else c
-    c = [i for i in c if d in (segs[i]["key"][0], segs[i]["key"][3][:1])] or c if d else c
-    hit = [i for i in c if in_range(num, segs[i]["l"]) or in_range(num, segs[i]["r"])]
-    if not hit:  # the number falls in a gap between ranges: the nearest segment of this street within 100 numbers
-        hit = [i for i in c if segs[i]["lo"] and segs[i]["lo"] - 100 <= num <= segs[i]["hi"] + 100]
-    if not hit:
-        return None
-    dist = np.hypot(MID[hit, 0] - x, MID[hit, 1] - y) * PX_M if np.isfinite(x) else np.zeros(len(hit))
-    k = int(np.argmin(dist))
-    return hit[k] if dist[k] <= FAR else None
 
 
 # ---------- tickets in the window ----------
@@ -189,9 +107,6 @@ blk = [(st, h, part_of[(st, h, i)]) for st, h, i in zip(d.street, d.hund, d.seg)
 blocks = sorted(set(blk), key=lambda b: (street_name(KEYS[b[0]]), b[1], b[2]))
 bix = {b: k for k, b in enumerate(blocks)}
 d["b"] = [bix[b] for b in blk]
-by_street = collections.defaultdict(list)
-for i, k in enumerate(SID):
-    by_street[k].append(i)
 print(f"{len(blocks):,} blocks, {sum(1 for b in blocks if b[2]):,} of them a second place with the same street name and hundred")
 
 
@@ -235,8 +150,7 @@ def nix(key):
 geo = []
 for st, h, k in blocks:
     centre, matched = parts[(st, h)][k]
-    own = [i for i in by_street[st] if segs[i]["lo"] <= h + 99 and segs[i]["hi"] >= h and np.hypot(*(MID[i] - centre)) * PX_M < SPLIT]
-    own = own or matched
+    own = cl.block(st, h, centre) or matched
     lines = [cut(segs[i], h) for i in own]
     # cross streets: chain ends whose address sits in (or up to 50 numbers past) this hundred, low end first
     ends = collections.Counter(n for i in own for n in (segs[i]["a"], segs[i]["b"]))
@@ -248,16 +162,9 @@ for st, h, k in blocks:
                 tips.append((addr, nix(c)))
     tips.sort()
     between = [tips[0][1], tips[-1][1]] if len(tips) >= 2 and tips[0][1] != tips[-1][1] else [tips[0][1]] if tips else []
-    # which compass side the even numbers are on, weighted by length
-    votes = collections.Counter()
-    for i in own:
-        s = segs[i]
-        dx, dy = s["xy"][-1] - s["xy"][0]
-        even_left = s["l"][0] % 2 == 0 if s["l"][0] else s["r"][0] % 2 == 1 if s["r"][0] else None
-        if even_left is not None and (dx or dy):
-            votes[compass(dy, -dx) if even_left else compass(-dy, dx)] += math.hypot(dx, dy)
     allp = np.vstack(lines)
-    geo.append(dict(lines=lines, between=between, even=votes.most_common(1)[0][0] if votes else "",
+    # even: which compass side the even numbers are on, weighted by length
+    geo.append(dict(lines=lines, between=between, even=cl.even_side(own)[0],
                     cell=tuple((allp.mean(0) // CELL).astype(int)), zip=int(collections.Counter(segs[i]["zip"] for i in own).most_common(1)[0][0])))
 
 # ---------- what gets ticketed, per block ----------

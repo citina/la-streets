@@ -2,6 +2,7 @@
 data/citations_usc.csv
 data/meters_usc.csv
 data/sweep_routes.geojson
+data/centerlines_usc.json
 data/*.part
 # City-wide downloads (~450 MB) — regenerate with ./fetch_city.py
 data/city/

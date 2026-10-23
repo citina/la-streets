@@ -1,4 +1,5 @@
 """Shared loading, geometry and calendar helpers for the USC and city-wide ticket analyses."""
+import collections
 import json
 import math
 import re
@@ -14,9 +15,12 @@ DOCS = ROOT / "docs"
 CSV = DATA / "citations_usc.csv"
 METERS = DATA / "meters_usc.csv"
 ROUTES = DATA / "sweep_routes.geojson"
+CENTERLINES = DATA / "centerlines_usc.json"
 
 # The study area: a 2.5 x 2.5 km box around USC's University Park campus
 BOX = dict(s=34.012, n=34.035, w=-118.300, e=-118.272)
+# The street centerlines reach a little past it (about 300 m), for streets that run along its edges
+CL_BOX = dict(s=BOX["s"] - .003, n=BOX["n"] + .003, w=BOX["w"] - .003, e=BOX["e"] + .003)
 ZOOM, TILE = 16, 256
 
 # Patterns use the two years up to the newest ticket, so they describe how enforcement works now
@@ -347,6 +351,125 @@ def to_px(lat, lon):
     f = frame()
     x, y = deg2num(lat, lon)
     return x * TILE - f["x0"], y * TILE - f["y0"]
+
+
+# ---- City of Los Angeles street centerlines (LA GeoHub), with the address range on each side ----
+# ticket spellings -> the centerline's suffixes and directions
+CL_SUFFIX = {"AV": "AVE", "AVENUE": "AVE", "STR": "ST", "STREET": "ST", "BL": "BLVD", "BLV": "BLVD", "BOULEVARD": "BLVD",
+             "DRIVE": "DR", "PLACE": "PL", "RD": "ROAD", "WY": "WAY", "LN": "LANE", "COURT": "CT", "TERR": "TER",
+             "TERRACE": "TER", "CIRCLE": "CIR", "HIGHWAY": "HWY", "TRL": "TR", "TRAIL": "TR", "PARKWAY": "PKWY",
+             "PLZ": "PZ", "PLAZA": "PZ"}
+CL_DIRS = {"N": "N", "S": "S", "E": "E", "W": "W", "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
+FAR = 600             # metres: a match this far from the ticket's own coordinates is treated as wrong
+SPLIT = 800           # metres: parts of one street + hundred block this far apart are separate places
+
+
+def z17(lon, lat):
+    """Zoom-17 Web Mercator pixels, the same grid as OpenStreetMap's tiles."""
+    n = 2 ** 17 * 256
+    r = np.radians(np.asarray(lat, dtype=float))
+    with np.errstate(invalid="ignore"):   # missing coordinates stay NaN
+        return (np.asarray(lon, dtype=float) + 180) / 360 * n, (1 - np.log(np.tan(r) + 1 / np.cos(r)) / math.pi) / 2 * n
+
+
+PX_M = 156543.03392 * math.cos(math.radians(34.05)) / 2 ** 17   # metres per zoom-17 pixel in LA
+
+
+class Centerlines:
+    """The street centerlines as fetch_city.py (the whole city) or fetch_citations.py (the USC box) saves
+    them: one segment per piece of street between two intersections, with its address range on each side.
+    Ticket addresses are matched to them by street name, direction, suffix and house number; the ticket's
+    own coordinates settle names that repeat across the city. box (BOX's s, n, w, e) keeps only the
+    segments that reach into it."""
+
+    def __init__(self, path, box=None):
+        self.segs = []
+        for f in json.loads(path.read_text())["features"]:
+            p, g = f["properties"], f["geometry"]
+            if not g or not (p.get("STNAME") or "").strip():
+                continue
+            parts = g["coordinates"] if g["type"] == "MultiLineString" else [g["coordinates"]]
+            pts = np.array([c for ln in parts for c in ln])
+            if box and not (pts[:, 0].max() >= box["w"] and pts[:, 0].min() <= box["e"] and pts[:, 1].max() >= box["s"] and pts[:, 1].min() <= box["n"]):
+                continue
+            x, y = z17(pts[:, 0], pts[:, 1])
+            rl = (p["ADLF"] or 0, p["ADLT"] or 0)
+            rr = (p["ADRF"] or 0, p["ADRT"] or 0)
+            nums = [v for v in (*rl, *rr) if v]
+            self.segs.append(dict(
+                key=((p["TDIR"] or "").strip(), p["STNAME"].strip().upper(), (p["STSFX"] or "").strip().upper(), (p["SFXDIR"] or "").strip().upper()),
+                l=rl, r=rr, lo=min(nums) if nums else 0, hi=max(nums) if nums else 0,
+                a=p["INT_ID_FROM"], b=p["INT_ID_TO"], zip=p["ZIP_L"] or p["ZIP_R"] or 0, xy=np.c_[x, y]))
+        self.mid = np.array([s["xy"].mean(0) for s in self.segs])
+        self.keys = sorted({s["key"] for s in self.segs})   # one per street: (direction, name, suffix, suffix direction)
+        key_ix = {k: i for i, k in enumerate(self.keys)}
+        self.sid = np.array([key_ix[s["key"]] for s in self.segs])
+        self.by_name = collections.defaultdict(list)
+        self.by_street = collections.defaultdict(list)
+        for i, s in enumerate(self.segs):
+            self.by_name[s["key"][1]].append(i)
+            self.by_street[self.sid[i]].append(i)
+        self.suffixes = {s["key"][2] for s in self.segs if s["key"][2]}
+
+    def parse(self, loc):
+        """'3601 VERMONT AV S' -> (3601, 'VERMONT', 'AVE', 'S'); intersections and blanks -> None."""
+        m = re.match(r"^\s*(\d{1,6})[A-Z]?\s+(.+)$", loc) if isinstance(loc, str) else None
+        if not m:
+            return None
+        toks = [t for t in re.split(r"[\s.]+", m.group(2).upper()) if t]
+        d = sfx = None
+        if len(toks) > 1 and toks[0] in CL_DIRS:
+            d = CL_DIRS[toks.pop(0)]
+        if len(toks) > 1 and toks[-1] in CL_DIRS:
+            d = CL_DIRS[toks.pop()]
+        if len(toks) > 1 and CL_SUFFIX.get(toks[-1], toks[-1]) in self.suffixes:
+            sfx = CL_SUFFIX.get(toks[-1], toks[-1])
+            toks.pop()
+        name = " ".join(toks)
+        name = re.sub(r"^AVE? (\d+)$", r"AVENUE \1", name)
+        name = re.sub(r"^SAINT ", "ST ", re.sub(r"^MOUNT ", "MT ", name))
+        return int(m.group(1)), name, sfx, d
+
+    def match(self, num, name, sfx, d, x, y):
+        """Index of the segment for an address, or None; x, y are the ticket's own zoom-17 pixels."""
+        c = self.by_name.get(name)
+        if not c:
+            return None
+        c = [i for i in c if self.segs[i]["key"][2] == sfx] or c if sfx else c
+        c = [i for i in c if d in (self.segs[i]["key"][0], self.segs[i]["key"][3][:1])] or c if d else c
+        hit = [i for i in c if in_range(num, self.segs[i]["l"]) or in_range(num, self.segs[i]["r"])]
+        if not hit:  # the number falls in a gap between ranges: the nearest segment of this street within 100 numbers
+            hit = [i for i in c if self.segs[i]["lo"] and self.segs[i]["lo"] - 100 <= num <= self.segs[i]["hi"] + 100]
+        if not hit:
+            return None
+        dist = np.hypot(self.mid[hit, 0] - x, self.mid[hit, 1] - y) * PX_M if np.isfinite(x) else np.zeros(len(hit))
+        k = int(np.argmin(dist))
+        return hit[k] if dist[k] <= FAR else None
+
+    def block(self, st, h, centre):
+        """The segments of street st (an index into keys) whose addresses reach into hundred block h, within
+        SPLIT of centre (zoom-17 pixels)."""
+        return [i for i in self.by_street[st] if self.segs[i]["lo"] <= h + 99 and self.segs[i]["hi"] >= h
+                and np.hypot(*(self.mid[i] - centre)) * PX_M < SPLIT]
+
+    def even_side(self, ids):
+        """Which compass side of the street the even house numbers are on, weighted by length: a compass word,
+        or "" when the ranges don't say, and the summed pixel vector pointing to that side."""
+        votes, vec = collections.Counter(), np.zeros(2)
+        for i in ids:
+            s = self.segs[i]
+            dx, dy = s["xy"][-1] - s["xy"][0]
+            even_left = s["l"][0] % 2 == 0 if s["l"][0] else s["r"][0] % 2 == 1 if s["r"][0] else None
+            if even_left is not None and (dx or dy):
+                v = (dy, -dx) if even_left else (-dy, dx)
+                votes[compass(*v)] += math.hypot(dx, dy)
+                vec += v
+        return (votes.most_common(1)[0][0] if votes else ""), vec
+
+
+def in_range(n, rng):
+    a, b = rng
+    return bool(a or b) and min(a, b) <= n <= max(a, b) and n % 2 in (a % 2, b % 2)
 
 
 # ---- shared by the USC and city-wide analyses ----

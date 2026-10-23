@@ -102,7 +102,8 @@ Two hand-written pages with no map library: the maps are SVG over OpenStreetMap 
   `data/bundle.json`, `basemap.py` stitches the OpenStreetMap basemap, and `build.py` puts them together into one
   self-contained `docs/index.html` (never edit that file by hand).
 - `citations.py` holds what both share: address parsing, street-name cleanup, holidays, USC term dates, the posted
-  sweeping routes and ticket-kind names.
+  sweeping routes, ticket-kind names, and the street centerlines (matching an address to its street, and which compass
+  side of a block has the even house numbers).
 
 On LA Street Rules, the map images come from OpenStreetMap and the block data from GitHub Pages, one small area at a
 time, so both can tell roughly which part of the city you're looking at. "Show blocks near me" only moves the map; the page doesn't send or
@@ -124,7 +125,7 @@ ticket is past them. To rebuild by hand, run `gh workflow run weekly.yml`.
 ./analyze_city.py      # docs/streets/data/ (~16 MB of JSON, not committed); serve docs/ and open /streets/
 ./neighborhoods.py     # docs/streets/hoods.json (committed; only rerun if the city updates the outlines)
 
-./fetch_citations.py   # data/citations_usc.csv, data/meters_usc.csv, data/sweep_routes.geojson
+./fetch_citations.py   # data/citations_usc.csv, data/meters_usc.csv, data/sweep_routes.geojson, data/centerlines_usc.json
 ./basemap.py           # docs/basemap.jpg (36 OpenStreetMap tiles at zoom 16, cached in .tilecache/)
 ./analyze.py           # data/bundle.json (every number the USC page shows)
 ./build.py             # docs/index.html

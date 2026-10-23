@@ -6,6 +6,7 @@ and when; per side, the street-sweeping schedule; for metered blocks, how often
 an officer walks by in each half hour of each weekday. Plus the campus-wide
 charts. See README.md for the method.
 """
+import collections
 import json
 import math
 
@@ -38,9 +39,22 @@ print(f"{len(d):,} tickets; window {START.date()} to {END.date()}: {len(w):,}")
 
 
 # ---------- block geometry: all years, for a steadier line ----------
+# Which compass side has the even house numbers comes from the city's street centerlines, which give each
+# segment's address range per side, matched the same way as on LA Street Rules. Without them (the city's map
+# server was down), or where they don't say, it comes from where the even and odd tickets sit.
 geo = {}
 a = d.dropna(subset=["street", "block", "lat"])
 a = a[a.x.between(0, F["W"]) & a.y.between(0, F["H"])]
+cl_path = next((p for p in (CENTERLINES, DATA / "city" / "centerlines.json") if p.exists()), None)
+cl = Centerlines(cl_path, box=CL_BOX) if cl_path else None
+seg_of, cl_side = {}, set()   # ticket address -> centerline segment; blocks whose side the centerlines gave
+if cl:
+    u = a.groupby("location").agg(lat=("lat", "first"), lon=("lon", "first"))
+    for loc, x, y in zip(u.index, *z17(u.lon, u.lat)):
+        if (p := cl.parse(loc)) and (i := cl.match(*p, x, y)) is not None:
+            seg_of[loc] = i
+else:
+    print("warning: no street centerlines (fetch_citations.py saves them); each block's even side comes from its tickets alone")
 for (st, bl), g in a.groupby(["street", "block"]):
     if len(g) < 15:
         continue
@@ -65,6 +79,14 @@ for (st, bl), g in a.groupby(["street", "block"]):
         if abs(sep) >= SEP_MIN and cons >= CONS_MIN:
             sgn = int(np.sign(sep))
             even_dir = compass(*(nrm * sgn))
+    hit = g.location.map(seg_of).dropna().astype(int).values
+    if len(hit):
+        street = collections.Counter(cl.sid[hit]).most_common(1)[0][0]
+        centre = (m + (F["x0"], F["y0"])) * 2   # this map's zoom-16 pixels -> the centerlines' zoom-17
+        word, vec = cl.even_side(cl.block(street, bl, centre) or sorted(set(hit[cl.sid[hit] == street])))
+        if word:
+            even_dir, sgn = word, int(np.sign(vec @ nrm)) or sgn   # the map draws the even side toward nrm * sgn
+            cl_side.add((st, bl))
     p1, p2 = m + v * lo, m + v * hi
     geo[(st, bl)] = dict(seg=[round(float(z), 1) for z in (*p1, *p2)], nrm=[round(float(nrm[0]), 3), round(float(nrm[1]), 3)],
                          sgn=sgn, even=even_dir)
@@ -85,7 +107,8 @@ for (st, bl), g in w.dropna(subset=["street", "block"]).groupby(["street", "bloc
     blocks.append(dict(id=f"{int(bl)}-{st.replace(' ', '-')}", street=nice_street(st), block=int(bl), n=len(g),
                        dow=np.bincount(g.dow, minlength=7).tolist(), top=top[:6], sweep=[], sweep_n=int(g.sweep.sum()), meter=None, mspaces=0,
                        **geo[(st, bl)]))
-print(len(blocks), "blocks with a panel;", sum(b["even"] is not None for b in blocks), "with a known even side")
+print(len(blocks), "blocks with a panel;", sum(b["even"] is not None for b in blocks), "with a known even side,",
+      sum(k in cl_side for k in index), "of them from the street centerlines")
 
 # ---------- metered spaces per block, from LADOT's meter inventory ----------
 # Tickets alone miss metered blocks whose meters never drew a ticket (3800 Figueroa, 2600 Vermont).

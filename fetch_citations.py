@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """Download every LADOT parking citation inside the study box to data/citations_usc.csv,
-LADOT's meter inventory for the same box to data/meters_usc.csv, and StreetsLA's posted
-sweeping routes that reach into the box to data/sweep_routes.geojson.
+LADOT's meter inventory for the same box to data/meters_usc.csv, StreetsLA's posted
+sweeping routes that reach into the box to data/sweep_routes.geojson, and the City of LA
+street centerlines in and just around it to data/centerlines_usc.json.
 
 Sources: data.lacity.org datasets 4f5p-udkv (Parking Citations, refreshed daily;
 about 320k rows / 45 MB) and s49e-q6j2 (Metered Parking Inventory; about 700 spaces),
-and StreetsLA's "Posted Street Sweeping Routes" layer on ArcGIS Online (about 26 route
-days here). One request each, no key needed.
+StreetsLA's "Posted Street Sweeping Routes" layer on ArcGIS Online (about 26 route
+days here), and LA GeoHub's street centerlines (Street_Information MapServer layer 36,
+the one fetch_city.py saves for the whole city; about 1,000 segments here). One request
+each, no key needed.
 """
 import json
+import time
 import urllib.parse
 import urllib.request
 
-from citations import BOX, CSV, DATA, METERS, ROUTES
+from citations import BOX, CENTERLINES, CL_BOX, CSV, DATA, METERS, ROUTES
 
 URL = "https://data.lacity.org/resource/4f5p-udkv.csv"
 COLS = ("ticket_number,issue_date,issue_time,meter_id,marked_time,location,route,agency,"
@@ -48,3 +52,31 @@ with urllib.request.urlopen(URL + "?" + urllib.parse.urlencode(q), timeout=120) 
 n = len(json.loads(body)["features"])  # an ArcGIS error comes back as 200 with no "features"
 ROUTES.write_bytes(body)
 print(ROUTES, n, "posted sweeping route days")
+
+# Street centerlines with the address range on each side, so analyze.py knows which compass side of a block
+# the even house numbers are on. Not essential: when the city's map server is down (it hands out the odd 502),
+# an older copy is kept, and with none analyze.py works the sides out from the tickets.
+URL = "https://maps.lacity.org/lahub/rest/services/Street_Information/MapServer/36/query"
+q = {"where": "1=1", "geometry": f"{CL_BOX['w']},{CL_BOX['s']},{CL_BOX['e']},{CL_BOX['n']}", "geometryType": "esriGeometryEnvelope",
+     "inSR": "4326", "spatialRel": "esriSpatialRelIntersects", "outSR": "4326", "orderByFields": "OBJECTID", "resultRecordCount": 1000,
+     "outFields": "ASSETID,INT_ID_FROM,INT_ID_TO,ADLF,ADLT,ADRF,ADRT,ZIP_L,ZIP_R,TDIR,STNAME,STSFX,SFXDIR,STATUS,Street_Designation", "f": "geojson"}
+for k in range(3):
+    try:
+        feats = []
+        while True:   # 1,000 per request
+            with urllib.request.urlopen(URL + "?" + urllib.parse.urlencode({**q, "resultOffset": len(feats)}), timeout=120) as r:
+                page = json.loads(r.read())
+            feats += page["features"]
+            if not page["features"] or not (page.get("exceededTransferLimit") or page.get("properties", {}).get("exceededTransferLimit")):
+                break
+        if not feats:
+            raise ValueError("no segments")
+        CENTERLINES.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, separators=(",", ":")))
+        print(CENTERLINES, len(feats), "street centerline segments")
+        break
+    except (OSError, ValueError, KeyError) as e:   # a server error, an HTML error page, or an ArcGIS error with no features
+        if k < 2:
+            time.sleep(20 * (k + 1))
+            continue
+        kept = "keeping the older copy" if CENTERLINES.exists() else "analyze.py will name sides from the tickets"
+        print(f"warning: couldn't download the street centerlines ({str(e)[:120]}); {kept}")
