@@ -362,6 +362,10 @@ CL_SUFFIX = {"AV": "AVE", "AVENUE": "AVE", "STR": "ST", "STREET": "ST", "BL": "B
 CL_DIRS = {"N": "N", "S": "S", "E": "E", "W": "W", "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
 FAR = 600             # metres: a match this far from the ticket's own coordinates is treated as wrong
 SPLIT = 800           # metres: parts of one street + hundred block this far apart are separate places
+# Where the centerlines have the address ranges on the wrong sides, checked by hand against LA County's parcel
+# addresses: the street, the house numbers, and the side the even numbers are really on. It names the side
+# rather than swapping the ranges, so it stays right if the city corrects them.
+EVEN_FIX = [(("W", "37TH", "PL", ""), 100, 299, "south")]   # 112, 146, 164, 226 and 240 W 37th Pl sit south of it
 
 
 def z17(lon, lat):
@@ -410,6 +414,11 @@ class Centerlines:
             self.by_name[s["key"][1]].append(i)
             self.by_street[self.sid[i]].append(i)
         self.suffixes = {s["key"][2] for s in self.segs if s["key"][2]}
+        for key, lo, hi, side in EVEN_FIX:   # a pixel vector toward the side the even numbers are really on
+            a = math.radians(45 * COMPASS.index(side))
+            for i in self.by_street[key_ix[key]] if key in key_ix else []:
+                if lo <= self.segs[i]["lo"] and self.segs[i]["hi"] <= hi:
+                    self.segs[i]["even_to"] = (math.cos(a), -math.sin(a))
 
     def parse(self, loc):
         """'3601 VERMONT AV S' -> (3601, 'VERMONT', 'AVE', 'S'); intersections and blanks -> None."""
@@ -462,6 +471,8 @@ class Centerlines:
             even_left = s["l"][0] % 2 == 0 if s["l"][0] else s["r"][0] % 2 == 1 if s["r"][0] else None
             if even_left is not None and (dx or dy):
                 v = (dy, -dx) if even_left else (-dy, dx)
+                if "even_to" in s and np.dot(v, s["even_to"]) < 0:   # ranges on the wrong sides (EVEN_FIX)
+                    v = (-v[0], -v[1])
                 votes[compass(*v)] += math.hypot(dx, dy)
                 vec += v
         return (votes.most_common(1)[0][0] if votes else ""), vec
@@ -473,10 +484,13 @@ def in_range(n, rng):
 
 
 # ---- shared by the USC and city-wide analyses ----
+COMPASS = ["east", "northeast", "north", "northwest", "west", "southwest", "south", "southeast"]   # 45° apart
+
+
 def compass(vx, vy):
     """Direction of a pixel-space vector (+x east, +y south) as one of 8 compass words."""
     ang = (math.degrees(math.atan2(-vy, vx)) + 360) % 360
-    return ["east", "northeast", "north", "northwest", "west", "southwest", "south", "southeast"][int((ang + 22.5) // 45) % 8]
+    return COMPASS[int((ang + 22.5) // 45) % 8]
 
 
 def usual_hours(mins, share=.5):
