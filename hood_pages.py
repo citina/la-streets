@@ -297,7 +297,7 @@ def shell(*, title, desc, path, css, built, crumbs, body, jsonld):
 {css}</style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="{up}../">USC Ticket Clock</a> · <a class="site" href="{up}">LA Street Rules</a> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span>Updated {d:%b} {d.day}, {d.year}</span> · <a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="{up}../">USC Street Parking</a> · <a class="site" href="{up}">LA Street Rules</a> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span>Updated {d:%b} {d.day}, {d.year}</span> · <a href="#about">About</a></span></nav>
   <nav class="crumbs" aria-label="You are here">{crumb}</nav>
 {body}
   <div class="note end" id="about">

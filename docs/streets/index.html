@@ -180,7 +180,7 @@
   .side + .side{margin-top:18px;padding-top:16px;border-top:1px dashed var(--rule)}
   .side-head{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
   /* a block whose sides have different schedules: the two signs side by side, so the sides can be compared; stacked,
-     each sign beside its text, only when the card is too narrow for two signs (screens under about 365px), as on USC Ticket Clock */
+     each sign beside its text, only when the card is too narrow for two signs (screens under about 365px), as on USC Street Parking */
   .sweeps{container-type:inline-size}
   @container (min-width:270px){
     .sides.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;align-items:start}
@@ -279,7 +279,7 @@
 </style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Ticket Clock</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span id="mastRange">Updated weekly</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="../">USC Street Parking</a> · <span class="site here" aria-current="page">LA Street Rules</span> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span id="mastRange">Updated weekly</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
   <div class="intro">
     <h1>LA Street Rules</h1>
     <p class="lede">Find street-sweeping dates and parking-ticket patterns for any block in the City of LA. Enter an address or select a block on the map. <span id="exAsk" hidden>How reliable is it? <a href="#sweep" id="exLink">See an example</a></span></p>
@@ -366,7 +366,7 @@
     <p class="about">Made by Citina Liang with Claude Code in less than a week. The page updates itself weekly. All sources are from official public data. <a href="https://www.linkedin.com/in/citina/">LinkedIn</a> · <a href="https://github.com/citina/la-streets">GitHub</a> · <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a></p>
     <p class="about">Every block's sweeping days, by neighborhood: <a href="neighborhoods/">all 113 LA neighborhoods</a>.</p>
     <div class="sibs">
-      <a class="sib" href="../"><div class="sib-name">USC Ticket Clock</div><div class="sib-txt">The streets around USC in more detail: when sweeping tickets land and how often meter officers come by.</div></a>
+      <a class="sib" href="../"><div class="sib-name">USC Street Parking</div><div class="sib-txt">The streets around USC in more detail: when sweeping tickets land and how often meter officers come by.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
       <a class="sib" href="https://citina.github.io/sf-streets/"><div class="sib-name">SF Streets</div><div class="sib-txt">San Francisco block by block: whether you can park there and for how long, and, on foot, what gets reported to police and how often people walking are hit nearby.</div></a>
     </div>
@@ -590,7 +590,7 @@ function pick(b, toCard=true){
 }
 // beside the map: a pick made while scrolled down a long card left the new card's top above the screen, and a shorter card
 // pulled the stuck map up and away with it (the page seemed to jump); scroll back to the new card's title instead, which
-// leaves the map where it was (stuck where stick() puts it), as on USC Ticket Clock
+// leaves the map where it was (stuck where stick() puts it), as on USC Street Parking
 function cardTop(){ if(stacked()) return; const t=$('.explorer').getBoundingClientRect().top-(parseFloat($('.mapcol').style.top)||12); if(t<0) scrollBy(0,t); }
 // after a search on a phone, bring the map into view (if it's off screen) rather than the card
 function showMap(){ if(!stacked()) return; const r=wrap.getBoundingClientRect();
@@ -638,7 +638,7 @@ const phaseTxt=on=>on===1?'1st & 3rd':'2nd & 4th';
 const since=()=>fmtDate(META.start);
 function sideName(b, side){ const dir=b.e?(side==='even'?b.e:OPP[b.e]):null;
   return dir?`${dir[0].toUpperCase()+dir.slice(1)} side`:`${side[0].toUpperCase()+side.slice(1)} side`; }
-// the side's first house numbers, which a reader can match to the addresses on their side of the street (as on USC Ticket Clock)
+// the side's first house numbers, which a reader can match to the addresses on their side of the street (as on USC Street Parking)
 function houseNums(b, side){ const a=b.h+(side==='odd'?1:0)||2; return `House numbers ${a},\u00a0${a+2}…`; }
 // sweep sides, from StreetsLA's posted routes: [side, weekdays (Mon = 0), posted start, posted end (minutes),
 // weeks (1 = 1st & 3rd, 2 = 2nd & 4th, 0 = every week), share of posted days ticketed, posted days, tickets, days with tickets,

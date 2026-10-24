@@ -1,4 +1,4 @@
-# LA Street Rules & USC Ticket Clock
+# LA Street Rules & USC Street Parking
 
 **[LA Street Rules](https://citina.github.io/la-streets/streets/)** is a map of the City of Los Angeles that answers,
 for any block:
@@ -12,7 +12,7 @@ still say just "No parking Thursday". LADOT's tickets show when enforcement actu
 Street Rules reads the last two years of them (about 3.9 million), matches most of them by address to one of about
 48,000 blocks, and takes each side's sweeping weeks and times from StreetsLA's posted routes. It's rebuilt every week.
 
-**[USC Ticket Clock](https://citina.github.io/la-streets/)** is where it started: the streets around campus, in more
+**[USC Street Parking](https://citina.github.io/la-streets/)** (called USC Ticket Clock until October 2026) is where it started: the streets around campus, in more
 detail, down to when the sweeping officer usually shows up.
 
 ![Searching for 11100 Weddington, reading each side's sweeping sign, then opening the block's meters and what gets ticketed there](readme/demo.gif)
@@ -49,12 +49,12 @@ sweeping tickets came on the 2nd & 4th Fridays, the weeks StreetsLA posts for th
 *After a search, a one-line answer shows above the map (each side's weeks and next sweep day), with a link down to
 the card.*
 
-## USC Ticket Clock
+## USC Street Parking
 
-![A block's panel on USC Ticket Clock: each side's sweeping sign, and when the officer's first and last tickets land on each sweep day](readme/usc-block.png)
+![A block's panel on USC Street Parking: each side's sweeping sign, and when the officer's first and last tickets land on each sweep day](readme/usc-block.png)
 *36th Pl, 1100 block, next to campus. On the map, each side of each street is colored by its sweeping day.*
 
-USC Ticket Clock covers a 2.5 × 2.5 km box around University Park, with about 318,000 tickets since 2014. Pick a block
+USC Street Parking covers a 2.5 × 2.5 km box around University Park, with about 318,000 tickets since 2014. Pick a block
 and it shows:
 
 - **Street sweeping, per side:** the posted day and window, the weeks, the next dates, and when the officer's first
@@ -100,7 +100,7 @@ Two hand-written pages with no map library: the maps are SVG over OpenStreetMap 
   they change). Search engines can't see the map's blocks (they're `#` links), so `hood_pages.py` writes a plain page
   for each neighborhood under `docs/streets/neighborhoods/`, listing every block's sweeping days with a link into the
   map, plus `docs/sitemap.xml`. It runs on every Pages deploy from that week's data and its pages aren't committed.
-- **USC Ticket Clock** is [`template.html`](template.html). `analyze.py` writes every number it shows to
+- **USC Street Parking** is [`template.html`](template.html). `analyze.py` writes every number it shows to
   `data/bundle.json`, `basemap.py` stitches the OpenStreetMap basemap, and `build.py` puts them together into one
   self-contained `docs/index.html` (never edit that file by hand).
 - `citations.py` holds what both share: address parsing, street-name cleanup, holidays, USC term dates, the posted
