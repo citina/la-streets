@@ -867,6 +867,11 @@ drawLag();
   draw('term');
 })();
 
+// beside the map (wide screens), the card starts level with the map itself, under the chips and search box (as on
+// LA Street Rules); the bar can wrap to two lines, so it's measured, not fixed
+const mapcol=$('.mapcol');
+function levelCard(){ $('#panel').style.marginTop=stacked()?'':Math.round(wrap.getBoundingClientRect().top-mapcol.getBoundingClientRect().top)+'px'; }
+new ResizeObserver(levelCard).observe(mapcol); addEventListener('resize',levelCard); levelCard();
 // charts are drawn at their real width, so redraw when the width changes (not on height-only changes like a phone's URL bar)
 let lastW=innerWidth, rt=0;
 addEventListener('resize',()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt);
