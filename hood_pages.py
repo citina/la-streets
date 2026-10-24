@@ -314,17 +314,44 @@ def crumbs_ld(items):
             "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": t, "item": u} for i, (t, u) in enumerate(items)]}
 
 
+def simplify(pts, tol):
+    """Douglas-Peucker: drop the points within tol of the line between the ones kept."""
+    if len(pts) < 3:
+        return pts
+    keep, stack = {0, len(pts) - 1}, [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        (ax, ay), (bx, by) = pts[a], pts[b]
+        dx, dy = bx - ax, by - ay
+        n = math.hypot(dx, dy) or 1
+        far, k = max((abs(dy * (pts[i][0] - ax) - dx * (pts[i][1] - ay)) / n, i) for i in range(a + 1, b)) if b > a + 1 else (0, a)
+        if far > tol:
+            keep.add(k)
+            stack += [(a, k), (k, b)]
+    return [pts[i] for i in sorted(keep)]
+
+
+def simplify_ring(p, tol):
+    """A closed ring, as two open halves split at the point farthest from its first (one open line would start and
+    end on the same point, and every point would sit "on" it)."""
+    k = max(range(len(p)), key=lambda i: math.hypot(p[i][0] - p[0][0], p[i][1] - p[0][1]))
+    return simplify(p[:k + 1], tol)[:-1] + simplify(p[k:] + p[:1], tol)[:-1]
+
+
 def map_svg(h, blocks, cell):
-    """The neighborhood's outline and its blocks' lines, in metres (zoom-17 pixels) from its top-left corner."""
+    """The neighborhood's outline and its blocks' lines, in metres (zoom-17 pixels) from its top-left corner. The map
+    is drawn at most ~500 px wide, so detail finer than about a third of a pixel is dropped (hillside streets curve a lot)."""
     x0, y0, x1, y1 = h["box"]
     pad = max(x1 - x0, y1 - y0) * .03
     ox, oy = x0 - pad, y0 - pad
-    ring = "".join("M" + "L".join(f"{x - ox:.0f},{y - oy:.0f}" for x, y in p) + "Z" for p in h["rings"])
+    tol = max(x1 - x0, y1 - y0) / 1500
+    rings = [q for p in h["rings"] if len(q := simplify_ring(p, tol)) >= 3]   # specks smaller than the tolerance go
+    ring = "".join("M" + "L".join(f"{x - ox:.0f},{y - oy:.0f}" for x, y in q) + "Z" for q in rings)
     lines = []
     for b in blocks:
         cx, cy = b["_cell"]
         for ln in b["g"]:
-            pts = [(ln[i] + cx * cell - ox, ln[i + 1] + cy * cell - oy) for i in range(0, len(ln), 2)]
+            pts = simplify([(ln[i] + cx * cell - ox, ln[i + 1] + cy * cell - oy) for i in range(0, len(ln), 2)], tol)
             lines.append("M" + "L".join(f"{x:.0f},{y:.0f}" for x, y in pts))
     w, hgt = x1 - x0 + 2 * pad, y1 - y0 + 2 * pad
     return (f'<svg viewBox="0 0 {w:.0f} {hgt:.0f}" aria-hidden="true"><path class="hood" fill-rule="evenodd" d="{ring}"/>'
