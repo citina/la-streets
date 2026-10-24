@@ -120,6 +120,7 @@
 
   /* ---------- explorer ---------- */
   .explorer{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:20px;align-items:start}
+  @media (min-width:1150px){ .explorer{grid-template-columns:minmax(0,1fr) 500px} }   /* room for two signs' text side by side */
   .mapcol{position:sticky;top:12px}
   @media (max-width:1000px){ .explorer{grid-template-columns:minmax(0,1fr)} .mapcol{position:static} }
   .mapbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 10px}
@@ -179,6 +180,7 @@
     .sides.two .side-head{grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
     .sides.two .side-sign{width:132px;max-width:100%}
   }
+  @container (min-width:420px){ .sides.two{column-gap:24px} }
   .side-txt{font-size:15px;color:var(--ink-2);line-height:1.45}
   .side-txt b{color:var(--ink);font-weight:600}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13.5px;margin-top:10px}
@@ -614,15 +616,18 @@ function laNow(){ const p={}; new Intl.DateTimeFormat('en-US',{timeZone:'America
 function sweepDays(s, n){ const t=laNow().day, js=(s.dow+1)%7, out=[];
   for(let k=0;k<75&&out.length<n;k++){ const x=new Date(t.getFullYear(),t.getMonth(),t.getDate()+k,12), nth=Math.floor((x.getDate()-1)/7)+1;
     if(x.getDay()===js&&(nth===s.on||nth===s.on+2)) out.push(x); } return out; }
+// the next n sweep days, counting today only until its posted hours are over
+function upcoming(s, n){ const {day,min}=laNow(), d=sweepDays(s,n+1); return (+d[0]===+day&&min>=s.s1?d.slice(1):d).slice(0,n); }
 // today and tomorrow by name, so a next date can't be taken for some other day; a date never splits across lines
 function dayLabel(x){ const d=x.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'}).replace(/ /g,' '), k=Math.round((x-laNow().day)/864e5);
   return k===0?'Today':k===1?`Tomorrow (${d})`:d; }
 // whether today is a sweep day on this side, then the next sweep days after today
-function sweepWhen(s){ const {day,min}=laNow(), d=sweepDays(s,3), today=+d[0]===+day, hrs=fmtRange(s.s0,s.s1).replace(/ /g,' ');
-  const now=!today?'Today: not a sweep day'
-    :min<s.s0?`Today: <b>sweep day, ${hrs}</b>`
-    :min<s.s1?`Today: <b>sweep day, ${hrs}, in effect now</b>`
-    :`Today: sweep day, ${hrs} (ended)`;
+function sweepWhen(s){ const {day,min}=laNow(), d=sweepDays(s,3), today=+d[0]===+day;
+  // no hours here: the sign right above shows them
+  const now=!today?'Today: not a sweep\u00a0day'
+    :min<s.s0?'Today: <b>sweep day</b>'
+    :min<s.s1?'Today: <b>sweep day, in effect now</b>'
+    :'Today: sweep day (ended)';
   return `${now}<br>Next: <b>${d.slice(today?1:0,today?3:2).map(dayLabel).join(' · ')}</b>`; }
 // the officer's usual first and last tickets on a side's sweep days, in minutes after the window opens
 function arrival(g){ const arr=g.flatMap(x=>x.arr), fin=g.flatMap(x=>x.last); return {arr, fin, first:g[0].s0+median(arr), last:g[0].s0+median(fin)}; }
@@ -812,7 +817,7 @@ $('#sweepIntro').innerHTML=`Since March 2021, each street here has been swept on
     +`<b>${inw===all?'all '+all:(inw/all>=.995?'over 99%':Math.round(100*inw/all)+'%')+' of them ('+inw+')'}</b> came on the scheduled 1st &amp; 3rd Tuesdays (the grid below shows when they came).`; }
 // the block's own sign in Street View beside ours; the photo is of this side, so it shows only while the data still has it
 { const b=BL.find(b=>b.id==='600-28TH-ST'), s=b&&b.sweep.find(s=>s.side==='even'&&s.dow===1);
-  if(s){ $('#signOurs').innerHTML=`<div class="cmp-sign">${signHTML(s)}<div class="side-txt cmp-next">Next:<b>${sweepDays(s,2).map(x=>`<span>${dayLabel(x)}</span>`).join('<i> · </i>')}</b></div></div>`;
+  if(s){ $('#signOurs').innerHTML=`<div class="cmp-sign">${signHTML(s)}<div class="side-txt cmp-next">Next:<b>${upcoming(s,2).map(x=>`<span>${dayLabel(x)}</span>`).join('<i> · </i>')}</b></div></div>`;
     $('#signView').src='https://www.google.com/maps/embed?pb=!4v1758200000000!6m8!1m7!1s0CKMyijHGY5ugvMXMzsdyA!2m2!1d34.0268619!2d-118.2790699!3f202.94!4f1.57!5f4';
     $('#signPair').hidden=false; } }
 // the intro's link down to this example; scrolls without changing the address, which names the block on the card
