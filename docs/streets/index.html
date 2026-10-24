@@ -163,6 +163,7 @@
   .p-eyebrow{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
   .p-title{font-family:"Barlow Condensed","Barlow",sans-serif;font-weight:700;font-size:32px;line-height:1;margin:4px 0 6px}
   .p-sub{font-size:15px;color:var(--ink-2)}
+  .p-sub a{color:inherit}
   .card{border-top:1px solid var(--rule);padding:16px 0 14px;margin-top:14px}
   .card h4{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:22px;font-weight:700;line-height:1.1;color:var(--ink);margin:0 0 12px}
   /* 1. after street sweeping, a row per part, closed until tapped, with its short answer under its name (as on SF Streets) */
@@ -363,6 +364,7 @@
   <section id="about">
     <div class="code"><b>About</b> These pages</div>
     <p class="about">Made by Citina Liang with Claude Code in less than a week. The page updates itself weekly. All sources are from official public data. <a href="https://www.linkedin.com/in/citina/">LinkedIn</a> · <a href="https://github.com/citina/la-streets">GitHub</a> · <a href="mailto:citina.liang@gmail.com">citina.liang@gmail.com</a></p>
+    <p class="about">Every block's sweeping days, by neighborhood: <a href="neighborhoods/">all 113 LA neighborhoods</a>.</p>
     <div class="sibs">
       <a class="sib" href="../"><div class="sib-name">USC Ticket Clock</div><div class="sib-txt">The streets around USC in more detail: when sweeping tickets land and how often meter officers come by.</div></a>
       <a class="sib" href="https://citina.github.io/curb-log/"><div class="sib-name">Curb Log</div><div class="sib-txt">Available parking right now on Vermont Ave by W 36th St, and how it usually changes on weekdays, from LADOT's parking sensors.</div></a>
@@ -539,7 +541,9 @@ function blockCentre(b){ const xs=[], ys=[]; b.g.forEach(ln=>{ for(let i=0;i<ln.
 /* ============ neighborhoods (hoods.json, the LA Times' boundaries): picked on the map while the whole city shows,
    or by search; once the blocks show, the tag names the one in the middle of the map ============ */
 let HOODS=null;
-fetch('hoods.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
+// each neighborhood's own page (written by hood_pages.py), for search engines, which can't see the map's # links
+const hoodSlug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const hoodsReady=fetch('hoods.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
   // each ring: its first point in zoom-17 pixels, then the steps to the next ones
   HOODS=d.h.map(([name,...rs],i)=>{ let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
     const rings=rs.map(f=>{ const p=[]; let x=f[0]-O[0], y=f[1]-O[1];
@@ -728,7 +732,7 @@ function fold(host, key, title, peek){
   return H('div',{},d); }
 // the neighborhood the picked block is in (the outlines may load after the card)
 function cardHood(){ const el=$('#cardHood'); if(!el) return; const c=selected&&HOODS&&blockCentre(selected), h=c&&HOODS.find(h=>inHood(h,c[0],c[1]));
-  el.textContent=h?h.name:''; el.hidden=!h; }
+  el.innerHTML=h?`<a href="neighborhoods/${hoodSlug(h.name)}/">${esc(h.name)}</a>`:''; el.hidden=!h; }
 function renderCard(b){
   const p=$('#panel'); p.innerHTML='';
   if(!b){ H('div',{className:'p-title',textContent:'Pick a block'},p);
@@ -985,6 +989,8 @@ fetch('data/index.json').then(r=>{ if(!r.ok) throw new Error(r.status); return r
     $('#exAsk').hidden=false; $('#exLink').onclick=e=>{ e.preventDefault();
       $('#sweep').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }; }
   const id=decodeURIComponent(location.hash.slice(1));
+  // a neighborhood page's link to the map, like #koreatown (block ids start with their hundred)
+  if(/^[a-z]/.test(id)){ await hoodsReady; const i=HOODS?HOODS.findIndex(h=>hoodSlug(h.name)===id):-1; if(i>=0) goHood(i); return; }
   if(id){ const s=await getStreets(); for(let i=0;i<s.length;i++) for(const e of s[i]) if(blockId(i,e[0],e[2])===id) return goBlock({s:i,e}); }
 }).catch(e=>{ console.error(e); msg('The block data didn\'t load. Try reloading the page.'); });
 
@@ -1003,7 +1009,7 @@ addEventListener('resize',()=>{ if(innerWidth===lastIW) return; lastIW=innerWidt
 // size (a page opened in a background tab) fits LA once it has one, or keeps a linked block in the middle.
 let sized=hasSize(), lastW=wrap.clientWidth, lastH=wrap.clientHeight, mapT=0;
 new ResizeObserver(()=>{ const w=wrap.clientWidth, h=wrap.clientHeight; if(!w||!h||(w===lastW&&h===lastH)) return; lastW=w; lastH=h;
-  if(!sized){ sized=true; if(selected) centerOn(vb.x+vb.w/2,vb.y+vb.h/2,vb.w); else fitLA(); return; }
+  if(!sized){ sized=true; if(selected||(HOODS&&HOODS.some(h=>h.el.classList.contains('on')))) centerOn(vb.x+vb.w/2,vb.y+vb.h/2,vb.w); else fitLA(); return; }
   clearTimeout(mapT); mapT=setTimeout(()=>centerOn(vb.x+vb.w/2,vb.y+vb.h/2,vb.w),150); }).observe(wrap);
 })();
 </script>

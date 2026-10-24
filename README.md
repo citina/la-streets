@@ -97,7 +97,9 @@ Two hand-written pages with no map library: the maps are SVG over OpenStreetMap 
   posted sweeping routes. `analyze_city.py` matches each ticket's address to a block and side, works out each block's
   rules, and splits the blocks into small map cells that load as you zoom in, plus a search index.
   `neighborhoods.py` writes `docs/streets/hoods.json`, the LA Times' neighborhood outlines (committed; rerun it only if
-  they change).
+  they change). Search engines can't see the map's blocks (they're `#` links), so `hood_pages.py` writes a plain page
+  for each neighborhood under `docs/streets/neighborhoods/`, listing every block's sweeping days with a link into the
+  map, plus `docs/sitemap.xml`. It runs on every Pages deploy from that week's data and its pages aren't committed.
 - **USC Ticket Clock** is [`template.html`](template.html). `analyze.py` writes every number it shows to
   `data/bundle.json`, `basemap.py` stitches the OpenStreetMap basemap, and `build.py` puts them together into one
   self-contained `docs/index.html` (never edit that file by hand).
@@ -124,6 +126,7 @@ ticket is past them. To rebuild by hand, run `gh workflow run weekly.yml`.
 ./fetch_city.py        # data/city/: two years of city-wide tickets (~450 MB), street centerlines, meter inventory, posted sweeping routes
 ./analyze_city.py      # docs/streets/data/ (~16 MB of JSON, not committed); serve docs/ and open /streets/
 ./neighborhoods.py     # docs/streets/hoods.json (committed; only rerun if the city updates the outlines)
+./hood_pages.py        # docs/streets/neighborhoods/ and docs/sitemap.xml, from docs/streets/data/ (not committed)
 
 ./fetch_citations.py   # data/citations_usc.csv, data/meters_usc.csv, data/sweep_routes.geojson, data/centerlines_usc.json
 ./basemap.py           # docs/basemap.jpg (36 OpenStreetMap tiles at zoom 16, cached in .tilecache/)

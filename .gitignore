@@ -8,6 +8,9 @@ data/*.part
 data/city/
 # LA Street Rules data — regenerate with ./analyze_city.py; published as the city-data release asset
 docs/streets/data/
+# LA Street Rules' neighborhood pages and the sitemap — written by ./hood_pages.py on every Pages deploy
+docs/streets/neighborhoods/
+docs/sitemap.xml
 # OSM tile cache — regenerate with ./basemap.py
 .tilecache/
 

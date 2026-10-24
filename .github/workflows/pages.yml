@@ -2,11 +2,11 @@ name: deploy page
 
 # Publishes docs/ to GitHub Pages on pushes that change it. weekly.yml starts it
 # by hand after its weekly run: pushes made with GITHUB_TOKEN don't trigger on: push.
-# LA Street Rules' data isn't in the repo; it comes from the city-data release.
+# LA Street Rules' data isn't in the repo; it comes from the city-data release, and so do its neighborhood pages.
 on:
   push:
     branches: [main]
-    paths: ["docs/**"]
+    paths: ["docs/**", "hood_pages.py"]
   workflow_dispatch:
 
 permissions:
@@ -35,6 +35,10 @@ jobs:
           else
             echo "::warning::no city-data release yet; LA Street Rules will say its data didn't load"
           fi
+      # One page per neighborhood, which search engines can find (they can't see the map's # links), and the
+      # sitemap listing every page. Written here from this week's data, never committed.
+      - name: Write the neighborhood pages and the sitemap
+        run: python3 hood_pages.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
