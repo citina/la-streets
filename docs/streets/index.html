@@ -192,6 +192,7 @@
   .side-name{font-weight:600;font-size:15px;margin:0 0 4px}
   .side-num{font-size:14px;color:var(--ink-2);margin:-3px 0 4px}
   .side-txt{font-size:15px;color:var(--ink-2);line-height:1.45}
+  .side-txt .st{display:inline-block}   /* today's status goes to the next line whole rather than splitting after the date */
   .rule-line{font-size:15px;line-height:1.45}
   .rule-line b{font-weight:600}
   .evid{font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:10px}
@@ -677,12 +678,12 @@ function upcoming(dows, on, s1, n){ const {day,min}=laNow(), d=sweepDays(dows,on
 // today and tomorrow by name, so a next date can't be taken for some other day
 function dayLabel(x){ const k=daysFromToday(x); return k===0?'Today':k===1?`Tomorrow (${fmtDay(x)})`:fmtDay(x); }
 // whether today is a sweep day here, then the next n sweep days after today
-function sweepWhen(dows, s0, s1, on, n){ const {day,min}=laNow(), d=sweepDays(dows,on,n+1), today=+d[0]===+day;
+function sweepWhen(dows, s0, s1, on, n){ const {day,min}=laNow(), d=sweepDays(dows,on,n+1), today=+d[0]===+day, t=`Today (${fmtDay(day)})`;
   // no hours here: the sign right above shows them
-  const now=!today?'Today: not a sweep\u00a0day'
-    :min<s0?'Today: <b>sweep day</b>'
-    :min<s1?'Today: <b>sweep day, in effect now</b>'
-    :'Today: sweep day (ended)';
+  const now=!today?`${t}: <span class="st">not a sweep\u00a0day</span>`
+    :min<s0?`${t}: <b class="st">sweep day</b>`
+    :min<s1?`${t}: <b class="st">sweep day, in effect now</b>`
+    :`${t}: <span class="st">sweep day (ended)</span>`;
   return `${now}<br>Next: <b>${d.slice(today?1:0,(today?1:0)+n).map(dayLabel).join(' · ')}</b>`; }
 // the same in a few words, for the one-line answer above the map on a phone
 function sweepShort(dows, s0, s1, on){ const {day,min}=laNow(), d=sweepDays(dows,on,2), today=+d[0]===+day;
