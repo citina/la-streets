@@ -419,7 +419,10 @@ const svg=S('svg',{role:'img','aria-label':'Map of Los Angeles neighborhoods and
 wrap.insertBefore(svg, wrap.firstChild); wrap.insertBefore(tileBox, svg.nextSibling);   // images over the lines (see .tiles)
 // every layer sits in a group that turns about the view's center by rot (radians, clockwise); 0 is north up
 const gRotT=S('g',{},tileSvg), gTiles=S('g',{},gRotT), gRot=S('g',{},svg);
-const gHood=S('g',{class:'hoods'},gRot), gStreet=S('g',{},gRot), gHalo=S('g',{},gRot), gBlk=S('g',{},gRot), gStreetLine=S('g',{},gRot), gYou=S('g',{},gRot), gHit=S('g',{},gRot);
+// the block lines, the card's block and the location dot only show; taps go to gHit. The dot is redrawn on every move,
+// and on an iPhone a gesture whose finger started on a shape that then gets redrawn stops reaching the map
+const noTap={'pointer-events':'none'};
+const gHood=S('g',{class:'hoods'},gRot), gStreet=S('g',{},gRot), gHalo=S('g',noTap,gRot), gBlk=S('g',noTap,gRot), gStreetLine=S('g',{},gRot), gYou=S('g',noTap,gRot), gHit=S('g',{},gRot);
 let vb={x:(LX0+LX1)/2, y:(LY0+LY1)/2, w:LX1-LX0, h:0}, rot=0;
 const north=$('#znorth'), turnNorm=a=>Math.atan2(Math.sin(a),Math.cos(a));
 // a page opened in a background tab can lay the map out at no width; the view is then a thin sliver many times taller
@@ -469,27 +472,41 @@ function toMap(e){ const r=svg.getBoundingClientRect(), sx=((e.clientX-r.left)/r
   return {x:vb.x+vb.w/2+c*sx+s*sy, y:vb.y+vb.h/2-s*sx+c*sy}; }
 function zoomAt(f, cx, cy){ const nw=Math.min(maxW(),Math.max(minW(),vb.w*f)), k=nw/vb.w; vb.x=cx-(cx-vb.x)*k; vb.y=cy-(cy-vb.y)*k; vb.w=nw; setVB(); }
 wrap.addEventListener('wheel',e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); const p=toMap(e); zoomAt(Math.exp(e.deltaY*0.01),p.x,p.y); },{passive:false});
-const ptrs=new Map(); let dragged=false, down=null, pinch=null;
-// two fingers: the map spot between them stays under them while they pinch, and once they twist past about 11° the map turns with them
-const TWIST=0.2, SNAP=0.07;
+const ptrs=new Map(); let dragged=false, down=null, pinch=null, pinchFrame=0;
+// two fingers: the map spot between them stays under them while they pinch, and once they twist far enough the map turns
+// with them: about 11° with the fingers far apart, more when they're close together, where a plain pinch wobbles most
+// (a twist of 25 px along their circle, as Mapbox does). A turn that ends within 7° of north snaps to it. With more
+// fingers down the first two steer, and whenever a finger comes or goes the pinch starts over from where they are
+const TWIST=0.2, TWIST_PX=25, SNAP=0.12;
 const fingers=()=>{ const [a,b]=[...ptrs.values()]; return {x:(a.x+b.x)/2, y:(a.y+b.y)/2, d:Math.hypot(a.x-b.x,a.y-b.y), a:Math.atan2(b.y-a.y,b.x-a.x)}; };
+const startPinch=turning=>{ const f=fingers(); pinch={...f, p:toMap({clientX:f.x,clientY:f.y}), twist:0, dmin:f.d, turning}; };
+// moves come one finger at a time, and a view worked out in between would pinch and unpinch a little; so the map
+// follows the fingers once a frame, after they've all moved
+function pinchStep(){ pinchFrame=0; if(ptrs.size<2||!pinch) return;
+  const r=svg.getBoundingClientRect(), f=fingers(), da=turnNorm(f.a-pinch.a); pinch.dmin=Math.min(pinch.dmin,f.d);
+  if(pinch.turning) rot=turnNorm(rot+da); else if(Math.abs(pinch.twist+=da)>Math.max(TWIST,2*TWIST_PX/Math.max(1,pinch.dmin))) pinch.turning=true;
+  vb.w=Math.min(maxW(),Math.max(minW(),vb.w*pinch.d/Math.max(1,f.d))); vb.h=vb.w*wrap.clientHeight/Math.max(1,wrap.clientWidth);
+  const sx=((f.x-r.left)/r.width-.5)*vb.w, sy=((f.y-r.top)/r.height-.5)*vb.h, c=Math.cos(rot), s=Math.sin(rot);
+  vb.x=pinch.p.x-(c*sx+s*sy)-vb.w/2; vb.y=pinch.p.y-(c*sy-s*sx)-vb.h/2; setVB();
+  // at the city's edge the view stops short, so the fingers are now over a different spot: carry on from that one
+  pinch.p={x:vb.x+vb.w/2+c*sx+s*sy, y:vb.y+vb.h/2-s*sx+c*sy}; pinch.d=f.d; pinch.a=f.a; hideTip(); }
+const flushPinch=()=>{ if(pinchFrame){ cancelAnimationFrame(pinchFrame); pinchStep(); } };
 wrap.addEventListener('pointerdown',e=>{ if(e.target.closest('.zoom')||e.target.closest('a')) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); down={x:e.clientX,y:e.clientY}; dragged=false;
-  if(ptrs.size===2){ const f=fingers(); pinch={...f, p:toMap({clientX:f.x,clientY:f.y}), twist:0, turning:false}; } });
+  if(ptrs.size===2) startPinch(false); });
 wrap.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; const prev=ptrs.get(e.pointerId), r=svg.getBoundingClientRect();
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(ptrs.size===2 && pinch){ const f=fingers(), da=turnNorm(f.a-pinch.a);
-    if(pinch.turning) rot=turnNorm(rot+da); else if(Math.abs(pinch.twist+=da)>TWIST) pinch.turning=true;
-    vb.w=Math.min(maxW(),Math.max(minW(),vb.w*pinch.d/Math.max(1,f.d))); vb.h=vb.w*wrap.clientHeight/Math.max(1,wrap.clientWidth);
-    const sx=((f.x-r.left)/r.width-.5)*vb.w, sy=((f.y-r.top)/r.height-.5)*vb.h, c=Math.cos(rot), s=Math.sin(rot);
-    vb.x=pinch.p.x-(c*sx+s*sy)-vb.w/2; vb.y=pinch.p.y-(c*sy-s*sx)-vb.h/2; setVB();
-    pinch.d=f.d; pinch.a=f.a; dragged=true; hideTip(); return; }
+  if(ptrs.size>=2 && pinch){ dragged=true; pinchFrame=pinchFrame||requestAnimationFrame(pinchStep); return; }
   if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>4){ dragged=true; if(!wrap.hasPointerCapture(e.pointerId)) wrap.setPointerCapture(e.pointerId); }
   if(dragged){ const dx=(e.clientX-prev.x)/r.width*vb.w, dy=(e.clientY-prev.y)/r.height*vb.h, c=Math.cos(rot), s=Math.sin(rot);
     vb.x-=c*dx+s*dy; vb.y-=c*dy-s*dx; setVB(); hideTip(); } });
-const endPtr=e=>{ ptrs.delete(e.pointerId);
+const endPtr=e=>{ flushPinch(); ptrs.delete(e.pointerId);
   if(ptrs.size<2){ if(pinch&&pinch.turning&&Math.abs(rot)<SNAP){ rot=0; setVB(); } pinch=null; }   // a turn that ends near north snaps to it
+  else startPinch(!!(pinch&&pinch.turning));
   setTimeout(()=>{ if(!ptrs.size) dragged=false; },0); };
 wrap.addEventListener('pointerup',endPtr); wrap.addEventListener('pointercancel',endPtr);
+// Safari: a two-finger pinch on the map zooms the map, not the whole page
+wrap.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+wrap.addEventListener('gesturestart',e=>{ if(ptrs.size) e.preventDefault(); });   // fingers on the map only: a Mac trackpad pinch still zooms the page
 svg.addEventListener('dblclick',e=>{ const p=toMap(e); zoomAt(0.5,p.x,p.y); });
 $('#zin').onclick=()=>zoomAt(0.6,vb.x+vb.w/2,vb.y+vb.h/2);
 $('#zout').onclick=()=>zoomAt(1/0.6,vb.x+vb.w/2,vb.y+vb.h/2);
