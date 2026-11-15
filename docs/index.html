@@ -184,6 +184,7 @@
   @container (min-width:420px){ .sides.two{column-gap:24px} }
   .side-txt{font-size:15px;color:var(--ink-2);line-height:1.45}
   .side-txt b{color:var(--ink);font-weight:600}
+  .side-txt .st{display:inline-block}   /* today's status goes to the next line whole rather than splitting after the date */
   .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13.5px;margin-top:10px}
   .kv dt{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding-top:2px}
   .kv dd{margin:0}
@@ -637,16 +638,17 @@ function sweepDays(s, n){ const t=laNow().day, js=(s.dow+1)%7, out=[];
     if(x.getDay()===js&&(nth===s.on||nth===s.on+2)) out.push(x); } return out; }
 // the next n sweep days, counting today only until its posted hours are over
 function upcoming(s, n){ const {day,min}=laNow(), d=sweepDays(s,n+1); return (+d[0]===+day&&min>=s.s1?d.slice(1):d).slice(0,n); }
-// today and tomorrow by name, so a next date can't be taken for some other day; a date never splits across lines
-function dayLabel(x){ const d=x.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'}).replace(/ /g,' '), k=Math.round((x-laNow().day)/864e5);
+const fmtDay=x=>x.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'}).replace(/ /g,'\u00a0');   // a date never splits across lines
+// today and tomorrow by name, so a next date can't be taken for some other day
+function dayLabel(x){ const d=fmtDay(x), k=Math.round((x-laNow().day)/864e5);
   return k===0?'Today':k===1?`Tomorrow (${d})`:d; }
-// whether today is a sweep day on this side, then the next sweep days after today
-function sweepWhen(s){ const {day,min}=laNow(), d=sweepDays(s,3), today=+d[0]===+day;
+// whether today (with its date) is a sweep day on this side, then the next sweep days after today
+function sweepWhen(s){ const {day,min}=laNow(), d=sweepDays(s,3), today=+d[0]===+day, t=`Today (${fmtDay(day)})`;
   // no hours here: the sign right above shows them
-  const now=!today?'Today: not a sweep\u00a0day'
-    :min<s.s0?'Today: <b>sweep day</b>'
-    :min<s.s1?'Today: <b>sweep day, in effect now</b>'
-    :'Today: sweep day (ended)';
+  const now=!today?`${t}: <span class="st">not a sweep\u00a0day</span>`
+    :min<s.s0?`${t}: <b class="st">sweep day</b>`
+    :min<s.s1?`${t}: <b class="st">sweep day, in effect now</b>`
+    :`${t}: <span class="st">sweep day (ended)</span>`;
   return `${now}<br>Next: <b>${d.slice(today?1:0,today?3:2).map(dayLabel).join(' · ')}</b>`; }
 // the officer's usual first and last tickets on a side's sweep days, in minutes after the window opens
 function arrival(g){ const arr=g.flatMap(x=>x.arr), fin=g.flatMap(x=>x.last); return {arr, fin, first:g[0].s0+median(arr), last:g[0].s0+median(fin)}; }
