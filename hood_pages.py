@@ -205,6 +205,14 @@ def page_css(tokens):
         color:var(--ink-2);display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
   .mast a{color:inherit}
   .mast .site{white-space:nowrap}
+  /* a phone: "About" stays top right while the site names wrap, and the date gets its own line under them, as on the map pages */
+  @media (max-width:560px){
+    .mast{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+    .mast .end{display:contents}
+    .mast .end a{grid-area:1/2}
+    .mast .upd{grid-area:2/1}
+    .mast .dot{display:none}
+  }
   .crumbs{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin:26px 0 0}
   .crumbs a{color:inherit}
   h1{font-family:"Barlow Condensed","Barlow",system-ui,sans-serif;font-weight:700;font-size:clamp(40px,7vw,62px);
@@ -290,6 +298,14 @@ def shell(*, title, desc, path, css, built, crumbs, body, jsonld):
 <meta property="og:url" content="{url}">
 <!-- Written by hood_pages.py from the weekly data on every deploy; not committed, so edit hood_pages.py instead. -->
 <script type="application/ld+json">{json.dumps(jsonld, separators=(",", ":"))}</script>
+<!-- Home Screen: LA Street Rules' app name, icon and "Add to Home Screen" button -->
+<link rel="manifest" href="{up}manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="{up}../icons/la-192.png">
+<link rel="apple-touch-icon" href="{up}../icons/la-180.png">
+<meta name="apple-mobile-web-app-title" content="Street Rules">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2ef">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0d">
+<script src="{up}../home.js" data-app="LA Street Rules" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -297,7 +313,7 @@ def shell(*, title, desc, path, css, built, crumbs, body, jsonld):
 {css}</style>
 
 <main>
-  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="{up}../">USC Street Parking</a> · <a class="site" href="{up}">LA Street Rules</a> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span>Updated {d:%b} {d.day}, {d.year}</span> · <a href="#about">About</a></span></nav>
+  <nav class="mast" aria-label="Sister sites"><span><a class="site" href="https://citina.github.io/curb-log/">Curb Log</a> · <a class="site" href="{up}../">USC Street Parking</a> · <a class="site" href="{up}">LA Street Rules</a> · <a class="site" href="https://citina.github.io/sf-streets/">SF Streets</a></span><span class="end"><span class="upd">Updated {d:%b} {d.day}, {d.year}</span><span class="dot"> · </span><a href="#about">About</a></span></nav>
   <nav class="crumbs" aria-label="You are here">{crumb}</nav>
 {body}
   <div class="note end" id="about">
